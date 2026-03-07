@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   CSS カスタムプロパティ（デザイントークン）
+   ============================================================ */
+:root {
+  --color-ink: #111111;
+  --color-ink-muted: #666666;
+  --color-line: #E5E5E5;
+  --color-surface: #F7F7F7;
+  --color-primary: #4F46E5;
+  --color-primary-dark: #4338CA;
+  --color-primary-subtle: #EEF2FF;
+
+  --color-security-1: #10B981;
+  --color-security-2: #F59E0B;
+  --color-security-3: #EF4444;
+
+  --radius-card: 12px;
+  --radius-btn: 10px;
+  --radius-input: 10px;
+}
+
+/* ============================================================
+   ベーススタイル
+   ============================================================ */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: #FFFFFF;
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+  /* タップハイライトを無効化 */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ============================================================
+   iOS セーフエリア対応
+   ============================================================ */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.pt-safe {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+}
+
+/* ============================================================
+   テキストエリアのリサイズ無効化
+   ============================================================ */
+textarea {
+  resize: none;
+}
+
+/* ============================================================
+   アニメーション
+   ============================================================ */
+@keyframes dia-bounce {
+  0%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-6px); }
+}
+
+@keyframes dia-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: dia-fade-in 0.2s ease-out forwards;
+}
+
+/* ============================================================
+   スクロールバー（Webkit）
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 2px;
+}
+
+/* 横スクロール領域でスクロールバーを非表示にするユーティリティ */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
