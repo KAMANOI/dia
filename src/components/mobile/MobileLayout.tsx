@@ -13,11 +13,15 @@ interface MobileLayoutProps {
   prompts: GeneratedPrompts | null;
   activeTab: PromptVariant;
   isGenerating: boolean;
+  progressStep: number;
+  isSlowConnection: boolean;
+  generationError: string | null;
   history: HistoryItem[];
   onInputChange: (updates: Partial<PromptInput>) => void;
   onTabChange: (tab: PromptVariant) => void;
   onGenerate: () => void;
   onModify: (modifier: PromptModifier) => void;
+  onRetry: () => void;
   onStart: (option?: StartOption) => void;
   onNext: () => void;
   onBack: () => void;
@@ -33,11 +37,15 @@ export function MobileLayout({
   prompts,
   activeTab,
   isGenerating,
+  progressStep,
+  isSlowConnection,
+  generationError,
   history,
   onInputChange,
   onTabChange,
   onGenerate,
   onModify,
+  onRetry,
   onStart,
   onNext,
   onBack,
@@ -100,6 +108,10 @@ export function MobileLayout({
             onBack={onBack}
             onGenerate={onGenerate}
             isGenerating={isGenerating}
+            progressStep={progressStep}
+            isSlowConnection={isSlowConnection}
+            generationError={generationError}
+            onRetry={onRetry}
           />
         )}
         {step === 3 && prompts && (

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import type { ArtifactType, HistoryItem } from '@/types';
 import { ARTIFACT_TYPES } from '@/types';
 import { Button } from '@/components/ui/Button';
@@ -179,6 +180,19 @@ export function StepZero({ history, onStart, onOpenHistory }: StepZeroProps) {
             </div>
           </section>
         )}
+
+        {/* フッターリンク */}
+        <div className="flex items-center justify-center gap-4 pt-2 pb-4 border-t border-line mt-6">
+          <Link href="/privacy" className="text-xs text-ink-muted hover:text-ink transition-colors">
+            プライバシーポリシー
+          </Link>
+          <Link href="/terms" className="text-xs text-ink-muted hover:text-ink transition-colors">
+            利用規約
+          </Link>
+          <Link href="/contact" className="text-xs text-ink-muted hover:text-ink transition-colors">
+            お問い合わせ
+          </Link>
+        </div>
 
       </div>
     </div>

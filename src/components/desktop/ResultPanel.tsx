@@ -5,22 +5,54 @@ import { MODIFIER_LABELS } from '@/types';
 import { PromptCard } from '@/components/shared/PromptCard';
 import { CopyButton } from '@/components/shared/CopyButton';
 import { AdSlot } from '@/components/ads';
+import { GeneratingView } from '@/components/shared/GeneratingView';
 
 interface ResultPanelProps {
   prompts: GeneratedPrompts | null;
   isGenerating: boolean;
+  progressStep: number;
+  isSlowConnection: boolean;
+  generationError: string | null;
   onModify: (modifier: PromptModifier) => void;
+  onRetry: () => void;
 }
 
 const VARIANTS: PromptVariant[] = ['standard', 'concise', 'precise'];
 const MODIFIERS: PromptModifier[] = ['shorter', 'polish', 'more_specific', 'alternative'];
 
-export function ResultPanel({ prompts, isGenerating, onModify }: ResultPanelProps) {
+export function ResultPanel({ prompts, isGenerating, progressStep, isSlowConnection, generationError, onModify, onRetry }: ResultPanelProps) {
   if (isGenerating) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 text-ink-muted">
-        <GeneratingDots />
-        <p className="text-sm">生成しています...</p>
+      <div className="space-y-4">
+        {/* プログレス表示 */}
+        <div className="bg-white rounded-card border border-line p-6">
+          <GeneratingView
+            progressStep={progressStep}
+            isSlowConnection={isSlowConnection}
+            compact
+          />
+        </div>
+        {/* スケルトンカード × 3 */}
+        {[0, 1, 2].map((i) => (
+          <SkeletonCard key={i} />
+        ))}
+      </div>
+    );
+  }
+
+  if (generationError && !prompts) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4">
+        <div className="w-full max-w-sm rounded-card border border-red-200 bg-red-50 px-5 py-4 text-center">
+          <p className="text-sm font-semibold text-red-700 mb-1">生成に失敗しました</p>
+          <p className="text-xs text-red-600 mb-4 leading-snug">{generationError}</p>
+          <button
+            onClick={onRetry}
+            className="px-5 py-2 rounded-btn bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
+          >
+            再試行する
+          </button>
+        </div>
       </div>
     );
   }
@@ -39,10 +71,26 @@ export function ResultPanel({ prompts, isGenerating, onModify }: ResultPanelProp
     );
   }
 
+  // 既存の結果がある場合、エラーバナーを結果の上に表示
+  const errorBanner = generationError ? (
+    <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-card border border-red-200 bg-red-50 mb-4">
+      <p className="text-xs text-red-700 leading-snug">
+        <span className="font-semibold">再生成に失敗しました。</span>前回の結果を表示中。
+      </p>
+      <button
+        onClick={onRetry}
+        className="flex-shrink-0 text-xs font-semibold text-red-700 underline underline-offset-2"
+      >
+        再試行
+      </button>
+    </div>
+  ) : null;
+
   const allPrompts = `【標準】\n${prompts.standard}\n\n【簡潔】\n${prompts.concise}\n\n【高精度】\n${prompts.precise}`;
 
   return (
     <div className="space-y-4 animate-fade-in">
+      {errorBanner}
       {/* ヘッダー */}
       <div className="flex items-center justify-between">
         <div>
@@ -84,16 +132,16 @@ export function ResultPanel({ prompts, isGenerating, onModify }: ResultPanelProp
   );
 }
 
-function GeneratingDots() {
+function SkeletonCard() {
   return (
-    <div className="flex gap-1.5">
-      {[0, 1, 2].map((i) => (
-        <div
-          key={i}
-          className="w-2 h-2 rounded-full bg-primary/40"
-          style={{ animation: `dia-bounce 1.2s ease-in-out ${i * 0.2}s infinite` }}
-        />
-      ))}
+    <div className="bg-white rounded-card border border-line p-5 space-y-3 animate-pulse">
+      <div className="h-3 w-14 rounded bg-ink/8" />
+      <div className="space-y-2">
+        <div className="h-3 rounded bg-ink/5 w-full" />
+        <div className="h-3 rounded bg-ink/5 w-11/12" />
+        <div className="h-3 rounded bg-ink/5 w-4/5" />
+        <div className="h-3 rounded bg-ink/5 w-3/4" />
+      </div>
     </div>
   );
 }

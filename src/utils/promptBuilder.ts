@@ -737,14 +737,22 @@ export function buildPrecisePrompt(request: PromptRequest): string {
  *     → sanitizeBySecurityLevel
  *     → getOutputTypeInstruction / getMarkdownConstraint / getPreferredAIHint
  *     → buildConcisePrompt / buildStandardPrompt / buildPrecisePrompt
+ *
+ * @param precomputedIntent - 呼び出し側で事前計算済みの ExpandedIntent。
+ *   渡された場合は expandIntent の再実行を省略する。
+ *   modifier 再生成など、入力が変わらない場合に活用してパフォーマンスを改善する。
  */
-export function buildPrompts(input: PromptInput, modifier?: PromptModifier | null): GeneratedPrompts {
+export function buildPrompts(
+  input: PromptInput,
+  modifier?: PromptModifier | null,
+  precomputedIntent?: ExpandedIntent,
+): GeneratedPrompts {
   const normalized = normalizeInput(input.description);
   const sanitized = sanitizeBySecurityLevel(normalized, input.securityLevel);
   const instruction = getOutputTypeInstruction(input.artifactType);
   const markdownConstraint = getMarkdownConstraint(input.markdownLevel);
   const aiHint = getPreferredAIHint(input.targetAI);
-  const expandedIntent = expandIntent(input.artifactType, normalized);
+  const expandedIntent = precomputedIntent ?? expandIntent(input.artifactType, normalized);
 
   const request: PromptRequest = {
     sanitized,

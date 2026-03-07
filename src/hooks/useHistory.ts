@@ -23,7 +23,11 @@ export function useHistory() {
       };
       setHistory((prev) => {
         const updated = [item, ...prev];
-        saveHistory(updated);
+        // setState updater を純粋に保つため、localStorage への書き込みを
+        // マクロタスクとして後回しにする（結果表示をブロックしない）
+        setTimeout(() => {
+          try { saveHistory(updated); } catch { /* quota 超過などを無視 */ }
+        }, 0);
         return updated;
       });
     },
@@ -33,7 +37,9 @@ export function useHistory() {
   const removeHistory = useCallback((id: string) => {
     setHistory((prev) => {
       const updated = prev.filter((item) => item.id !== id);
-      saveHistory(updated);
+      setTimeout(() => {
+        try { saveHistory(updated); } catch { /* non-fatal */ }
+      }, 0);
       return updated;
     });
   }, []);

@@ -21,7 +21,7 @@ const notoSansJP = Noto_Sans_JP({
 /* ============================================================
    メタデータ
    ============================================================ */
-const SITE_URL = 'https://dia-prompt.vercel.app';
+const SITE_URL = 'https://dia-wheat.vercel.app';
 
 export const metadata: Metadata = {
   title: 'DIA – 日本語からAIの指示へ',

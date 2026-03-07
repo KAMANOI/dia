@@ -1,14 +1,14 @@
 /**
- * intentExpander.ts (v2)
+ * intentExpander.ts (v3)
  *
- * ユーザーが入力した日本語テキストから意図情報を抽出・推定する層。
- * ルールベース + 軽いヒューリスティック。高度なNLP処理は行わない。
- *
- * 責務の流れ:
- *   extractTargetAudience / extractTone / extractConstraints /
- *   extractDesiredQualities / extractPrimaryGoal
- *     → inferAssumptions / detectAmbiguities
- *     → expandIntent (公開API)
+ * v2 からの変更:
+ * - すべての RegExp をモジュールレベル定数として1回だけコンパイル
+ * - extractPrimaryGoal: 18回の RegExp 生成 → indexOf ベースの O(n) スキャン
+ * - extractTargetAudience: mukeRe → indexOf ベースの O(n) スキャン
+ * - extractConstraints: prohibitRe → indexOf ベースのサフィックススキャン
+ * - isLikelyAudience: 末尾判定を Set ルックアップに変換
+ * - detectAmbiguities / inferAssumptions: regex alternation → includesAny ヘルパー
+ * - 全操作が O(n) 以下。カタストロフィックバックトラッキングなし。
  */
 
 import type { ArtifactType } from '../types';
@@ -41,6 +41,70 @@ export interface ExpandedIntent {
 }
 
 // ============================================================
+// ヘルパー関数
+// ============================================================
+
+/** 複数キーワードのいずれかが text に含まれるか（大文字小文字区別あり） */
+function includesAny(text: string, words: readonly string[]): boolean {
+  for (const w of words) {
+    if (text.includes(w)) return true;
+  }
+  return false;
+}
+
+/**
+ * 複数キーワードのいずれかが text に含まれるか（大文字小文字区別なし）
+ * textLC は呼び出し側で text.toLowerCase() を渡す（重複 toLowerCase を避けるため）
+ */
+function includesAnyLC(textLC: string, lowerWords: readonly string[]): boolean {
+  for (const w of lowerWords) {
+    if (textLC.includes(w)) return true;
+  }
+  return false;
+}
+
+// ============================================================
+// モジュールレベル定数（正規表現は1回だけコンパイル）
+// ============================================================
+
+// ── targetAudience ──
+// 「ターゲット / 対象(者|ユーザー|読者)? [接続詞] 〜」
+const TARGET_RE = /(?:ターゲット|対象(?:者|ユーザー|読者)?)[はがを：: ]{0,4}([^\s、。\n]{2,20})/g;
+
+// 年代（20代, 30〜40代 など）— \d+ は全数字マッチで安全、バックトラックなし
+const AGE_RE = /(\d+代(?:[〜～]\d+代)?)/g;
+
+// ── keyConstraints ──
+// 字数・行数制限: \d+ + 単位リテラル — バックトラックなし
+const CHAR_LIMIT_RE = /(\d+(?:字|文字|行)(?:以内|程度|まで))/g;
+
+// ── isLikelyAudience: 助詞終端チェック ──
+// Set ルックアップで O(1)、正規表現不要
+const PARTICLE_ENDINGS = new Set(['て', 'に', 'は', 'を', 'が', 'の', 'も', 'へ', 'で']);
+
+// ── 向け スキャン用: 文境界文字 ──
+const MUKE_BOUNDARY = new Set([
+  ' ', '\t', '　', '、', '。', '\n', '！', '!', '？', '?', '・', '「', '」', '（', '）', '(', ')',
+]);
+// 「向けて」「向かって」「向けっ」など否定先読み対象
+const MUKE_SKIP_NEXT = new Set(['て', 'か', 'っ']);
+
+// ── prohibitSuffix スキャン用: 文境界文字 ──
+const PROHIBIT_BOUNDARY = new Set([' ', '\t', '　', '、', '。', '\n', '！', '!', '？', '?']);
+const PROHIBIT_SUFFIXES = ['禁止', 'なし', '不使用', '厳守'] as const;
+
+// ── extractPrimaryGoal: 文境界文字 ──
+const GOAL_BOUNDARY = new Set(['。', '\n']);
+
+// ── inferAssumptions / detectAmbiguities: キーワードリスト ──
+// すべて小文字で格納（includesAnyLC 用）
+const SNS_PLATFORMS_LC = ['twitter', 'x', 'instagram', 'facebook', 'linkedin', 'tiktok', 'youtube'];
+const CODE_LANGS_LC = ['python', 'javascript', 'typescript', 'go', 'rust', 'java', 'c#', 'php', 'ruby', 'swift'];
+
+// リサーチ依頼: 「過去\d+年?」のみ正規表現が必要な箇所（シンプルで安全）
+const PAST_DURATION_RE = /過去\d+年?/;
+
+// ============================================================
 // targetAudience 抽出
 // ============================================================
 
@@ -52,62 +116,80 @@ const AUDIENCE_KEYWORDS = [
   '一般ユーザー', 'ユーザー', '専門家', '非エンジニア', '読者',
 ] as const;
 
+const EXCLUDED_AUDIENCE = new Set(['全て', 'すべて', 'それ', 'これ']);
+
 /**
  * 「〜向け」で取得した文字列が audience らしいか判定する。
- * 助詞で終わるもの・汎用語を除外してノイズを減らす。
+ * 助詞・汎用語を除外してノイズを減らす。
+ * Set ルックアップで O(1)、正規表現なし。
  */
 function isLikelyAudience(text: string): boolean {
   if (text.length < 2) return false;
-  // 助詞・接続詞で終わる = 名詞句ではない
-  if (/[てにはをがのもへで]$/.test(text)) return false;
-  // 明らかに対象でない汎用語
-  if (['全て', 'すべて', 'それ', 'これ'].includes(text)) return false;
+  if (PARTICLE_ENDINGS.has(text[text.length - 1])) return false;
+  if (EXCLUDED_AUDIENCE.has(text)) return false;
   return true;
 }
 
 /**
+ * 「〜向け」パターンを indexOf ベースでスキャンする。
+ * 計算量: O(n)、バックトラッキングなし。
+ *
+ * 元の mukeRe = /([^\s、。\n]{2,14})向け(?![てかっ])/g の完全な置き換え。
+ */
+function scanMuke(text: string, out: Set<string>): void {
+  let pos = 0;
+  while (pos < text.length) {
+    const idx = text.indexOf('向け', pos);
+    if (idx < 0) break;
+    pos = idx + 2; // 次の検索開始位置を先に進める
+
+    // 否定先読み: 「向けて」「向かって」「向けっ」を除外
+    const nextCh = text[idx + 2];
+    if (nextCh !== undefined && MUKE_SKIP_NEXT.has(nextCh)) continue;
+
+    // 「向け」の直前から最大14文字を逆方向スキャン（境界文字で停止）
+    let start = idx;
+    while (start > 0 && idx - start < 14 && !MUKE_BOUNDARY.has(text[start - 1])) {
+      start--;
+    }
+    const len = idx - start;
+    if (len >= 2) {
+      const v = text.slice(start, idx);
+      if (isLikelyAudience(v)) out.add(v);
+    }
+  }
+}
+
+/**
  * テキストから対象読者・ユーザー層を抽出する。
- *
- * 検出パターン:
- * - 「〜向け」（「向けて」「向かって」は除外）
- * - 「ターゲット / 対象(者|ユーザー|読者)? [接続詞] 〜」
- * - 年代表現（20代, 30〜40代 など）
- * - 職種・属性の既知キーワード
- *
- * 後処理: サブサム重複除去
- *   例）"20〜30代のビジネスパーソン" があれば "20〜30代" と "ビジネスパーソン" を除去
+ * 全操作 O(n)、正規表現バックトラッキングなし。
  */
 export function extractTargetAudience(text: string): string[] {
   const raw = new Set<string>();
 
-  // 「〜向け」: max 14字, 「向けて」「向かって」は不一致
-  const mukeRe = /([^\s、。\n]{2,14})向け(?![てかっ])/g;
-  let m: RegExpExecArray | null;
-  while ((m = mukeRe.exec(text)) !== null) {
-    const v = m[1].trim();
-    if (isLikelyAudience(v)) raw.add(v);
-  }
+  // 「〜向け」: indexOf ベーススキャン
+  scanMuke(text, raw);
 
-  // 「ターゲット / 対象(者|ユーザー|読者)? [は/が/を/：/ ] 〜」
-  const targetRe = /(?:ターゲット|対象(?:者|ユーザー|読者)?)[はがを：: ]{0,4}([^\s、。\n]{2,20})/g;
-  while ((m = targetRe.exec(text)) !== null) {
+  // 「ターゲット / 対象...」: 先頭リテラルで位置固定、境界付きキャプチャ
+  TARGET_RE.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = TARGET_RE.exec(text)) !== null) {
     const v = m[1].trim();
     if (isLikelyAudience(v)) raw.add(v);
   }
 
   // 年代（20代, 30〜40代 など）
-  const ageRe = /(\d+代(?:[〜～]\d+代)?)/g;
-  while ((m = ageRe.exec(text)) !== null) {
+  AGE_RE.lastIndex = 0;
+  while ((m = AGE_RE.exec(text)) !== null) {
     raw.add(m[1]);
   }
 
-  // 既知キーワードの直接マッチ
+  // 既知キーワードの直接マッチ: includes は O(n)
   for (const kw of AUDIENCE_KEYWORDS) {
     if (text.includes(kw)) raw.add(kw);
   }
 
   // サブサム重複除去: 他の要素の部分文字列になっているものを除く
-  // 例: "ビジネスパーソン" ⊂ "20〜30代のビジネスパーソン" → 前者を除去
   const all = Array.from(raw);
   return all.filter(
     (item) => !all.some((other) => other !== item && other.includes(item))
@@ -116,8 +198,6 @@ export function extractTargetAudience(text: string): string[] {
 
 // ============================================================
 // tone: 感情的・審美的雰囲気のみ
-//
-// ※ 「論理的」「実務的」など機能的品質語は desiredQualities へ分離
 // ============================================================
 
 const TONE_KEYWORDS = [
@@ -128,10 +208,7 @@ const TONE_KEYWORDS = [
   'エレガント', 'クラシック', 'ビンテージ', 'チェーン店っぽくない',
 ] as const;
 
-/**
- * テキストから審美的・感情的トーンを抽出する。
- * 機能的品質（論理的・実務的など）は extractDesiredQualities で取得する。
- */
+/** テキストから審美的・感情的トーンを抽出する。includes のみ、O(n×k)。 */
 export function extractTone(text: string): string[] {
   return TONE_KEYWORDS.filter((kw) => text.includes(kw));
 }
@@ -146,26 +223,49 @@ const CONSTRAINT_KEYWORDS = [
 ] as const;
 
 /**
+ * 「〜禁止」「〜なし」「〜不使用」「〜厳守」パターンを indexOf ベースでスキャン。
+ * 計算量: O(n × suffix数)、バックトラッキングなし。
+ *
+ * 元の prohibitRe = /([^\s、。\n]{1,10}(?:禁止|なし|不使用|厳守))/g の置き換え。
+ */
+function scanProhibitSuffixes(text: string, out: Set<string>): void {
+  for (const suffix of PROHIBIT_SUFFIXES) {
+    let pos = 0;
+    while (pos < text.length) {
+      const idx = text.indexOf(suffix, pos);
+      if (idx < 0) break;
+      pos = idx + suffix.length;
+
+      // サフィックスの直前から最大10文字を逆方向スキャン
+      let start = idx;
+      while (start > 0 && idx - start < 10 && !PROHIBIT_BOUNDARY.has(text[start - 1])) {
+        start--;
+      }
+      if (idx > start) {
+        out.add(text.slice(start, idx + suffix.length));
+      }
+    }
+  }
+}
+
+/**
  * テキストから制約・条件表現を抽出する。
- * 以下を検出:
- * - 字数・行数制限（300字以内 など）
- * - 「〜禁止」「〜なし」「〜厳守」
- * - 既知の制約キーワード
+ * 全操作 O(n)、正規表現バックトラッキングなし。
  */
 export function extractConstraints(text: string): string[] {
   const results = new Set<string>();
 
-  const charLimitRe = /(\d+(?:字|文字|行)(?:以内|程度|まで))/g;
+  // 字数・行数制限: \d+ は数字のみマッチ、バックトラックなし
+  CHAR_LIMIT_RE.lastIndex = 0;
   let m: RegExpExecArray | null;
-  while ((m = charLimitRe.exec(text)) !== null) {
+  while ((m = CHAR_LIMIT_RE.exec(text)) !== null) {
     results.add(m[1]);
   }
 
-  const prohibitRe = /([^\s、。\n]{1,10}(?:禁止|なし|不使用|厳守))/g;
-  while ((m = prohibitRe.exec(text)) !== null) {
-    results.add(m[1]);
-  }
+  // 「〜禁止」「〜なし」等: indexOf スキャン
+  scanProhibitSuffixes(text, results);
 
+  // 既知の制約キーワード
   for (const kw of CONSTRAINT_KEYWORDS) {
     if (text.includes(kw)) results.add(kw);
   }
@@ -175,23 +275,16 @@ export function extractConstraints(text: string): string[] {
 
 // ============================================================
 // desiredQualities: 機能的品質
-//
-// v2 で tone から分離:
-//   論理的・実務的・丁寧・プロフェッショナル などを追加
 // ============================================================
 
 const QUALITY_KEYWORDS = [
-  // tone から分離した機能的品質語
   '論理的', '分かりやすい', 'わかりやすい', '実務的', '丁寧', 'プロフェッショナル',
-  // 元からの品質語
   '読みやすい', '読みやすさ', '説得力', '信頼性', '独自性', '共感',
   '使いやすい', '実用的', '正確', '創造的', 'オリジナル', '革新的', '網羅的',
   '簡潔', '具体的',
 ] as const;
 
-/**
- * テキストから機能的品質への期待を抽出する。
- */
+/** テキストから機能的品質への期待を抽出する。includes のみ、O(n×k)。 */
 export function extractDesiredQualities(text: string): string[] {
   return QUALITY_KEYWORDS.filter((kw) => text.includes(kw));
 }
@@ -209,32 +302,60 @@ const GOAL_ENDINGS = [
 
 /**
  * テキストから主要な目標（やりたいこと）を1文で抽出する。
- * 「〜したい」系の文を優先し、なければ最初の文を使う。
+ *
+ * v2 との差分:
+ * - new RegExp() を18回ループ内で生成していた処理を indexOf スキャンに置き換え
+ * - .{5,50}? による潜在的な O(n×50×18) の試行を除去
+ * - 計算量: O(n × ending数)、正規表現なし
  */
 export function extractPrimaryGoal(text: string): string {
   for (const ending of GOAL_ENDINGS) {
-    const re = new RegExp(`(.{5,50}?${ending})`);
-    const m = text.match(re);
-    if (m) return m[1].trim();
+    const idx = text.indexOf(ending);
+    if (idx < 0) continue;
+
+    // ending の直前に少なくとも5文字必要
+    if (idx < 5) continue;
+
+    // 最大50文字を逆方向スキャンして文境界（。\n）を探す
+    const lookbackStart = Math.max(0, idx - 50);
+    let start = lookbackStart;
+    for (let j = idx - 1; j >= lookbackStart; j--) {
+      if (GOAL_BOUNDARY.has(text[j])) {
+        start = j + 1; // 境界文字の直後から
+        break;
+      }
+    }
+
+    const len = idx - start;
+    if (len < 5) continue; // prefix が短すぎる
+
+    const extracted = text.slice(start, idx + ending.length).trim();
+    if (extracted.length >= 5) return extracted;
   }
-  const first = text.split(/[。\n]/)[0].trim();
+
+  // フォールバック: 最初の文を返す（indexOf で O(n)）
+  let firstEnd = text.length;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '。' || text[i] === '\n') {
+      firstEnd = i;
+      break;
+    }
+  }
+  const first = text.slice(0, firstEnd).trim();
   return first.slice(0, 60) || text.slice(0, 60);
 }
 
 // ============================================================
 // inferAssumptions
-//
-// 設計方針:
-// - タイプごとに 1〜2 項目（最大3項目）
-// - テキスト依存の動的補完は 1 項目まで追加
-// - ベース仮定と動的仮定が重複する場合は動的仮定のみを採用
 // ============================================================
 
 /**
  * 成果物タイプとテキスト内容から妥当な補完仮定を生成する。
+ * regex alternation を includesAny / includesAnyLC に置き換え。
  */
 export function inferAssumptions(outputType: ArtifactType, text: string): string[] {
   const items: string[] = [];
+  const textLC = text.toLowerCase(); // toLowerCase は1回だけ
 
   switch (outputType) {
     case '文章作成':
@@ -251,23 +372,21 @@ export function inferAssumptions(outputType: ArtifactType, text: string): string
 
     case '企画書':
       items.push('意思決定者が承認・却下を判断しやすい構成を前提とする');
-      if (!/予算|費用|コスト/.test(text)) {
+      if (!includesAny(text, ['予算', '費用', 'コスト'])) {
         items.push('費用・予算感は「別途検討」として扱う');
       }
       break;
 
     case 'SNS投稿':
       items.push('エンゲージメント最大化（拡散・いいね）を主要目的として最適化する');
-      if (!/Twitter|X|Instagram|Facebook|LinkedIn|TikTok|YouTube/i.test(text)) {
-        // ベース仮定と被らないよう、動的仮定のみを追加
+      if (!includesAnyLC(textLC, SNS_PLATFORMS_LC)) {
         items.push('プラットフォーム未指定のため汎用的な文体・文字数で複数案を提示する');
       }
       break;
 
     case 'コード生成':
       items.push('保守性・可読性・エラーハンドリングを実装基準とする');
-      if (!/Python|JavaScript|TypeScript|Go|Rust|Java|C#|PHP|Ruby|Swift/i.test(text)) {
-        // ベース仮定の「言語〜採用」と表現を変えず、動的側のみ追加
+      if (!includesAnyLC(textLC, CODE_LANGS_LC)) {
         items.push('言語未指定のため最も一般的な選択肢を採用し冒頭で明示する');
       }
       break;
@@ -297,102 +416,94 @@ export function inferAssumptions(outputType: ArtifactType, text: string): string
 
 // ============================================================
 // detectAmbiguities
-//
-// 設計方針:
-// - 検出条件をより実務的・具体的に
-// - メッセージは「〜が不明です」だけでなく、AI が次のアクションを
-//   取りやすい形（例を含む・仮定の方向性を示す）にする
-// - 強化対象: 企画書・デザイン指示・リサーチ依頼・コード修正依頼
 // ============================================================
 
 interface AmbiguityCheck {
-  condition: (text: string) => boolean;
+  condition: (text: string, textLC: string) => boolean;
   note: string;
 }
 
+// すべての条件を includesAny / includesAnyLC で記述
+// regex alternation を完全に排除
 const AMBIGUITY_CHECKS: Partial<Record<ArtifactType, AmbiguityCheck[]>> = {
   '企画書': [
     {
-      // KPI・目標が一切言及されていない場合
-      condition: (t) => !/KPI|目標|指標|数値|成果|達成/.test(t),
+      condition: (t) => !includesAny(t, ['KPI', '目標', '指標', '数値', '成果', '達成']),
       note: 'KPI・目標値が未設定です。妥当な指標（例：新規顧客数・売上増減率・完了件数など）を仮置きして提示してください',
     },
     {
-      condition: (t) => !/期間|スケジュール|いつまで|フェーズ|ロードマップ|納期/.test(t),
+      condition: (t) => !includesAny(t, ['期間', 'スケジュール', 'いつまで', 'フェーズ', 'ロードマップ', '納期']),
       note: '実施期間・マイルストーンが未設定です。一般的なフェーズ分け（例：Phase1: 1〜3か月 / Phase2: 4〜6か月）で補完してください',
     },
     {
-      // 承認者の情報がなく、対象読者の想定が難しい場合
-      condition: (t) => !/承認|決裁|経営|役員|部長|マネージャー|上司|意思決定/.test(t),
+      condition: (t) => !includesAny(t, ['承認', '決裁', '経営', '役員', '部長', 'マネージャー', '上司', '意思決定']),
       note: '意思決定者・承認者の立場が不明です。一般的なビジネス文脈（中間管理職〜役員が読者）を前提として構成してください',
     },
   ],
 
   'コード生成': [
     {
-      condition: (t) => !/Python|JavaScript|TypeScript|Go|Rust|Java|C#|PHP|Ruby|Swift/i.test(t),
+      condition: (_, tl) => !includesAnyLC(tl, CODE_LANGS_LC),
       note: '使用言語・フレームワークが指定されていません。最も一般的な選択肢を採用し、冒頭でその理由を明示してください',
     },
     {
-      condition: (t) => !/テスト|test|spec/i.test(t),
+      condition: (_, tl) => !includesAnyLC(tl, ['テスト', 'test', 'spec']),
       note: 'テストコードの要否が不明です。必要な場合は主要な正常系・異常系のサンプルを末尾に追加してください',
     },
   ],
 
   'コード修正依頼': [
     {
-      condition: (t) => !/Python|JavaScript|TypeScript|Go|Rust|Java|C#|PHP|Ruby|Swift/i.test(t),
+      condition: (_, tl) => !includesAnyLC(tl, CODE_LANGS_LC),
       note: '対象言語・フレームワークが指定されていません。コードから推測して冒頭で明示してください',
     },
     {
-      // 修正目的の手がかりが一切ない場合
-      condition: (t) => !/バグ|エラー|error|パフォーマンス|遅い|可読性|読みにくい|セキュリティ|脆弱|最適化|修正目的/i.test(t),
+      condition: (_, tl) => !includesAnyLC(tl, ['バグ', 'エラー', 'error', 'パフォーマンス', '遅い', '可読性', '読みにくい', 'セキュリティ', '脆弱', '最適化', '修正目的']),
       note: '修正の主目的が不明です。バグ修正・パフォーマンス改善・可読性向上・セキュリティ対策のうち最も可能性が高いものを選び、冒頭で明示してください',
     },
   ],
 
   'SNS投稿': [
     {
-      condition: (t) => !/Twitter|X|Instagram|Facebook|LinkedIn|TikTok|YouTube|プラットフォーム|媒体/i.test(t),
+      condition: (t, tl) => !includesAnyLC(tl, SNS_PLATFORMS_LC) && !includesAny(t, ['プラットフォーム', '媒体']),
       note: '投稿プラットフォームが指定されていません（X・Instagram・LinkedIn など）。複数媒体向けに文字数・トーンを変えて提案してください',
     },
   ],
 
   'デザイン指示': [
     {
-      condition: (t) => !/Web|サイト|アプリ|印刷|バナー|ロゴ|パッケージ|ポスター|名刺|媒体|用途/i.test(t),
+      condition: (t) => !includesAny(t, ['Web', 'サイト', 'アプリ', '印刷', 'バナー', 'ロゴ', 'パッケージ', 'ポスター', '名刺', '媒体', '用途']),
       note: 'デザインの用途・媒体が不明です（例：Webサイト・アプリ画面・印刷物・ロゴなど）。Webデザインを前提として進め、媒体を冒頭で明示してください',
     },
     {
-      // NGデザインの指定がない場合
-      condition: (t) => !/NG|避け|使わない|禁止|嫌い|やめて|しない/.test(t),
+      condition: (t) => !includesAny(t, ['NG', '避け', '使わない', '禁止', '嫌い', 'やめて', 'しない']),
       note: 'NGデザイン・避けたい方向性が未指定です。ターゲット層と目的から一般的に不適切な方向性を仮定し、NGとして明示してください',
     },
   ],
 
   '画像生成指示': [
     {
-      condition: (t) => !/構図|アングル|視点|俯瞰|クローズアップ|全身|上半身|バストアップ/.test(t),
+      condition: (t) => !includesAny(t, ['構図', 'アングル', '視点', '俯瞰', 'クローズアップ', '全身', '上半身', 'バストアップ']),
       note: '構図・カメラアングルが不明です。最も一般的な構図（例：正面・バストアップ・三分割構図など）を仮定して指定してください',
     },
     {
-      condition: (t) => !/スタイル|テイスト|写真|フォト|イラスト|アート|絵画|3D|アニメ/.test(t),
+      condition: (t) => !includesAny(t, ['スタイル', 'テイスト', '写真', 'フォト', 'イラスト', 'アート', '絵画', '3D', 'アニメ']),
       note: 'アートスタイルが不明です（例：写真調・イラスト・水彩・3D・アニメ調など）。目的に合う一般的なスタイルを採用して明示してください',
     },
   ],
 
   'リサーチ依頼': [
     {
-      condition: (t) => !/比較|vs|対|競合|他社|選択肢|候補/.test(t),
+      condition: (t) => !includesAny(t, ['比較', 'vs', '対', '競合', '他社', '選択肢', '候補']),
       note: '比較・調査の対象範囲が不明です（例：競合3社・特定市場・複数手法の比較など）。最も関連性の高い比較軸を設定して進めてください',
     },
     {
-      condition: (t) => !/期間|〜年|最新|直近|過去\d+年?/.test(t),
+      // 「期間」「〜年」「最新」「直近」のいずれか、または「過去X年」パターン
+      condition: (t) => !includesAny(t, ['期間', '〜年', '最新', '直近']) && !PAST_DURATION_RE.test(t),
       note: '調査対象の時間軸が未指定です。最新情報を優先しつつ、必要に応じて直近3〜5年の傾向も含めてください',
     },
     {
-      // リサーチの活用用途が不明な場合
-      condition: (t) => !/目的|用途|活用|使用|なぜ|ため|に向け|意思決定|共有|検討/.test(t),
+      condition: (t) => !includesAny(t, ['目的', '用途', '活用', '使用', 'なぜ', 'ため', 'に向け', '意思決定', '共有', '検討']),
       note: '調査結果の活用用途が不明です（意思決定資料・社内共有・提案書など用途によって深さが変わります）。汎用的な情報整理として進めてください',
     },
   ],
@@ -400,21 +511,19 @@ const AMBIGUITY_CHECKS: Partial<Record<ArtifactType, AmbiguityCheck[]>> = {
 
 /**
  * 成果物タイプとテキスト内容から不明点・曖昧な点を検出する。
- * 各メッセージは「不明なので〇〇してください」形式で AI への具体的な指示となる。
+ * textLC を1回だけ計算して各 condition に渡す。
  */
 export function detectAmbiguities(outputType: ArtifactType, text: string): string[] {
   const checks = AMBIGUITY_CHECKS[outputType] ?? [];
+  if (checks.length === 0) return [];
+  const textLC = text.toLowerCase(); // 1回だけ
   return checks
-    .filter((c) => c.condition(text))
+    .filter((c) => c.condition(text, textLC))
     .map((c) => c.note);
 }
 
 // ============================================================
-// contextAmplifiers: AIが検討すべき観点
-//
-// 設計方針:
-// - 入力が短い・曖昧な場合でも AI が網羅的に検討できるよう補助
-// - タイプごとに 4〜6 項目。観点の名称は短く・具体的に
+// contextAmplifiers / outputBlueprint（変更なし）
 // ============================================================
 
 const CONTEXT_AMPLIFIERS: Record<ArtifactType, string[]> = {
@@ -489,15 +598,6 @@ const CONTEXT_AMPLIFIERS: Record<ArtifactType, string[]> = {
     '将来展望・課題',
   ],
 };
-
-// ============================================================
-// outputBlueprint: 成果物タイプごとの推奨出力構成
-//
-// 設計方針:
-// - precise の ## 出力形式 冒頭に「推奨構成」として提示
-// - standard には矢印つなぎで簡潔に提示
-// - 既存の preciseOutputSpec の詳細仕様を補完する骨格として機能
-// ============================================================
 
 const OUTPUT_BLUEPRINTS: Record<ArtifactType, string[]> = {
   '文章作成': [
@@ -587,7 +687,6 @@ export function expandIntent(outputType: ArtifactType, text: string): ExpandedIn
   const contextAmplifiers = CONTEXT_AMPLIFIERS[outputType] ?? [];
   const outputBlueprint = OUTPUT_BLUEPRINTS[outputType] ?? [];
 
-  // outputExpectation: 対象・トーンから導出（両方空の場合は空のまま）
   const outputExpectation: string[] = [];
   if (targetAudience.length > 0) {
     outputExpectation.push(`${targetAudience.join('・')}が理解しやすい内容`);

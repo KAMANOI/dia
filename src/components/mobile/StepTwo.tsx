@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Input';
 import { expandIntent } from '@/utils/intentExpander';
 import type { ExpandedIntent } from '@/utils/intentExpander';
+import { GeneratingView } from '@/components/shared/GeneratingView';
 
 interface StepTwoProps {
   description: string;
@@ -21,6 +22,10 @@ interface StepTwoProps {
   onBack: () => void;
   onGenerate: () => void;
   isGenerating: boolean;
+  progressStep: number;
+  isSlowConnection: boolean;
+  generationError: string | null;
+  onRetry: () => void;
 }
 
 const PLACEHOLDERS: Partial<Record<ArtifactType, string>> = {
@@ -77,6 +82,10 @@ export function StepTwo({
   onBack,
   onGenerate,
   isGenerating,
+  progressStep,
+  isSlowConnection,
+  generationError,
+  onRetry,
 }: StepTwoProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const canGenerate = description.trim().length > 0;
@@ -89,10 +98,42 @@ export function StepTwo({
     return expandIntent(artifactType, trimmed);
   }, [description, artifactType]);
 
+  // 生成中はプログレス画面を全画面表示
+  if (isGenerating) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center px-6">
+        <GeneratingView
+          progressStep={progressStep}
+          isSlowConnection={isSlowConnection}
+        />
+      </div>
+    );
+  }
+
+  // エラー時はフォームの上部にバナーを表示（フォームは操作可能なまま）
+
   return (
     <div className="flex flex-col h-full">
       {/* スクロール領域 */}
       <div className="flex-1 overflow-y-auto px-4 pt-5 pb-28">
+
+        {/* エラーバナー */}
+        {generationError && (
+          <div className="mb-4 flex items-start gap-3 px-4 py-3 rounded-card border border-red-200 bg-red-50">
+            <span className="text-red-500 text-base mt-0.5 flex-shrink-0">!</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-red-700 font-medium">生成に失敗しました</p>
+              <p className="text-xs text-red-600 mt-0.5 leading-snug">{generationError}</p>
+            </div>
+            <button
+              onClick={onRetry}
+              className="flex-shrink-0 text-xs font-semibold text-red-700 underline underline-offset-2"
+            >
+              再試行
+            </button>
+          </div>
+        )}
+
         {/* ヘッダー */}
         <div className="mb-4">
           <h2 className="text-xl font-bold text-ink">作りたい内容</h2>

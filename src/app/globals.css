@@ -92,6 +92,37 @@ textarea {
   border-radius: 2px;
 }
 
+/* ポリシーページ用 prose スタイル */
+.prose-dia h2 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-ink);
+  margin-top: 2.25rem;
+  margin-bottom: 0.625rem;
+}
+.prose-dia p {
+  font-size: 0.875rem;
+  color: #444;
+  line-height: 1.8;
+  margin-bottom: 0.75rem;
+}
+.prose-dia ul {
+  font-size: 0.875rem;
+  color: #444;
+  line-height: 1.8;
+  padding-left: 1.25rem;
+  margin-bottom: 0.75rem;
+  list-style-type: disc;
+}
+.prose-dia li {
+  margin-bottom: 0.25rem;
+}
+.prose-dia a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* 横スクロール領域でスクロールバーを非表示にするユーティリティ */
 .scrollbar-hide {
   -ms-overflow-style: none;

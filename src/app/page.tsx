@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useHistory } from '@/hooks/useHistory';
-import { buildPrompts } from '@/utils/promptBuilder';
+import { buildPrompts, normalizeInput } from '@/utils/promptBuilder';
+import { expandIntent } from '@/utils/intentExpander';
+import type { ExpandedIntent } from '@/utils/intentExpander';
 import { MobileLayout } from '@/components/mobile/MobileLayout';
 import { DesktopLayout } from '@/components/desktop/DesktopLayout';
 import { HistoryPanel } from '@/components/shared/HistoryPanel';
-import type { PromptInput, GeneratedPrompts, PromptVariant, PromptModifier, HistoryItem } from '@/types';
+import type { PromptInput, GeneratedPrompts, PromptVariant, PromptModifier, HistoryItem, ArtifactType } from '@/types';
 import type { StartOption } from '@/components/mobile/StepZero';
 
 const DEFAULT_INPUT: PromptInput = {
@@ -33,8 +35,30 @@ export default function Home() {
   const [input, setInput] = useState<PromptInput>(DEFAULT_INPUT);
   const [prompts, setPrompts] = useState<GeneratedPrompts | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [progressStep, setProgressStep] = useState(0);
+  const [isSlowConnection, setIsSlowConnection] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<PromptVariant>('standard');
   const [showHistory, setShowHistory] = useState(false);
+  const generationStartTime = useRef<number>(0);
+
+  // expandIntent キャッシュ: modifier 再生成時に expandIntent を再実行しないために使用
+  // description / artifactType が変わった場合のみ再計算する
+  const cachedIntentRef = useRef<{
+    description: string;
+    artifactType: ArtifactType;
+    intent: ExpandedIntent;
+  } | null>(null);
+
+  // 生成が長引いた場合(>2.5s)に低速接続メッセージを表示
+  useEffect(() => {
+    if (!isGenerating) {
+      setIsSlowConnection(false);
+      return;
+    }
+    const timer = setTimeout(() => setIsSlowConnection(true), 2500);
+    return () => clearTimeout(timer);
+  }, [isGenerating]);
 
   const handleInputChange = useCallback((updates: Partial<PromptInput>) => {
     setInput((prev) => ({ ...prev, ...updates }));
@@ -58,16 +82,125 @@ export default function Home() {
 
   const handleGenerate = useCallback(async (modifier?: PromptModifier | null) => {
     if (!input.description.trim()) return;
+
+    const t0 = Date.now();
+    const log = (label: string) =>
+      console.log(`[DIA:generate] ${label} | +${Date.now() - t0}ms`);
+
     setIsGenerating(true);
+    setProgressStep(0);
+    setGenerationError(null);
     generationCount.current += 1;
-    // UX: 生成感を演出する短いウェイト
-    await new Promise((resolve) => setTimeout(resolve, 700));
-    const generated = buildPrompts(input, modifier);
-    setPrompts(generated);
-    addHistory({ input, prompts: generated, modifier });
-    setActiveTab('standard');
-    if (!isDesktop) setStep(3);
-    setIsGenerating(false);
+    generationStartTime.current = t0;
+    log('start');
+
+    // ── Phase 1: 実処理（同期、< 5ms）──
+    // アニメーション開始前に計算を完了させる。結果の表示タイミングだけを
+    // アニメーションで制御し、「計算待ち」を一切なくす。
+    let generated: GeneratedPrompts;
+    try {
+      const normalized = normalizeInput(input.description);
+      log('normalizeInput: done');
+
+      // modifier 再生成: description/artifactType が変わっていなければ expandIntent をスキップ
+      const cached = cachedIntentRef.current;
+      const canReuse =
+        modifier != null &&
+        cached != null &&
+        cached.description === input.description &&
+        cached.artifactType === input.artifactType;
+
+      const intent = canReuse
+        ? cached.intent
+        : expandIntent(input.artifactType, normalized);
+
+      if (canReuse) {
+        log('expandIntent: skipped (cached)');
+      } else {
+        cachedIntentRef.current = {
+          description: input.description,
+          artifactType: input.artifactType,
+          intent,
+        };
+        log('expandIntent: done (fresh)');
+      }
+
+      generated = buildPrompts(input, modifier, intent);
+      log('buildPrompts: done');
+    } catch (computeErr) {
+      console.error(`[DIA:generate] compute ERROR at +${Date.now() - t0}ms:`, computeErr);
+      setGenerationError(
+        computeErr instanceof Error
+          ? computeErr.message
+          : '生成中にエラーが発生しました。再試行してください。'
+      );
+      setIsGenerating(false);
+      return;
+    }
+
+    // ── Phase 2: UXアニメーション（結果は既に準備済み）──
+    // modifier 再生成は短め（操作に慣れたユーザー向けの素早いフィードバック）
+    // 初回は少し丁寧に見せる
+    const STEP_DELAYS = modifier
+      ? [200, 175, 175, 150] // 計 ~700ms
+      : [300, 250, 250, 200]; // 計 ~1000ms
+
+    let timedOut = false;
+    const timeoutId = setTimeout(() => {
+      timedOut = true;
+      log('TIMEOUT — forcing isGenerating=false');
+      setGenerationError('少し時間がかかりすぎています。もう一度試してください。');
+      setIsGenerating(false);
+    }, 12000);
+
+    try {
+      const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+      await delay(STEP_DELAYS[0]);
+      if (timedOut) return;
+      setProgressStep(1);
+      log('step1');
+
+      await delay(STEP_DELAYS[1]);
+      if (timedOut) return;
+      setProgressStep(2);
+      log('step2');
+
+      await delay(STEP_DELAYS[2]);
+      if (timedOut) return;
+      setProgressStep(3);
+      log('step3');
+
+      await delay(STEP_DELAYS[3]);
+      if (timedOut) return;
+      log('animation done');
+
+      // 結果を表示（計算は Phase 1 で完了済み）
+      setPrompts(generated);
+
+      // 履歴保存: useHistory 側で setTimeout(0) により非同期実行済み
+      try {
+        addHistory({ input, prompts: generated, modifier });
+        log('saveHistory: queued');
+      } catch (historyErr) {
+        console.warn('[DIA:generate] saveHistory failed (non-fatal):', historyErr);
+      }
+
+      setActiveTab('standard');
+      if (!isDesktop) setStep(3);
+      log('done');
+
+    } catch (err) {
+      const elapsed = Date.now() - t0;
+      console.error(`[DIA:generate] ERROR at +${elapsed}ms:`, err);
+      setGenerationError(
+        err instanceof Error ? err.message : '生成中にエラーが発生しました。再試行してください。'
+      );
+    } finally {
+      clearTimeout(timeoutId);
+      if (!timedOut) setIsGenerating(false);
+      console.log(`[DIA:generate] finally | total: ${Date.now() - t0}ms | timedOut=${timedOut}`);
+    }
   }, [input, isDesktop, addHistory]);
 
   const handleModify = useCallback((modifier: PromptModifier) => {
@@ -107,9 +240,13 @@ export default function Home() {
           input={input}
           prompts={prompts}
           isGenerating={isGenerating}
+          progressStep={progressStep}
+          isSlowConnection={isSlowConnection}
+          generationError={generationError}
           onInputChange={handleInputChange}
           onGenerate={handleGenerate}
           onModify={handleModify}
+          onRetry={() => handleGenerate()}
           onOpenHistory={() => setShowHistory(true)}
         />
       ) : (
@@ -119,11 +256,15 @@ export default function Home() {
           prompts={prompts}
           activeTab={activeTab}
           isGenerating={isGenerating}
+          progressStep={progressStep}
+          isSlowConnection={isSlowConnection}
+          generationError={generationError}
           history={history}
           onInputChange={handleInputChange}
           onTabChange={setActiveTab}
           onGenerate={handleGenerate}
           onModify={handleModify}
+          onRetry={() => handleGenerate()}
           onStart={handleStart}
           onNext={handleNext}
           onBack={handleBack}

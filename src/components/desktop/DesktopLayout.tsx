@@ -4,14 +4,19 @@ import type { PromptInput, GeneratedPrompts, PromptModifier, ArtifactType } from
 import { InputPanel } from './InputPanel';
 import { ResultPanel } from './ResultPanel';
 import { LandingPanel } from './LandingPanel';
+import { Footer } from '@/components/shared/Footer';
 
 interface DesktopLayoutProps {
   input: PromptInput;
   prompts: GeneratedPrompts | null;
   isGenerating: boolean;
+  progressStep: number;
+  isSlowConnection: boolean;
+  generationError: string | null;
   onInputChange: (updates: Partial<PromptInput>) => void;
   onGenerate: () => void;
   onModify: (modifier: PromptModifier) => void;
+  onRetry: () => void;
   onOpenHistory: () => void;
 }
 
@@ -19,9 +24,13 @@ export function DesktopLayout({
   input,
   prompts,
   isGenerating,
+  progressStep,
+  isSlowConnection,
+  generationError,
   onInputChange,
   onGenerate,
   onModify,
+  onRetry,
   onOpenHistory,
 }: DesktopLayoutProps) {
   const showLanding = !prompts && !isGenerating;
@@ -77,12 +86,18 @@ export function DesktopLayout({
               <ResultPanel
                 prompts={prompts}
                 isGenerating={isGenerating}
+                progressStep={progressStep}
+                isSlowConnection={isSlowConnection}
+                generationError={generationError}
                 onModify={onModify}
+                onRetry={onRetry}
               />
             )}
           </div>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }
