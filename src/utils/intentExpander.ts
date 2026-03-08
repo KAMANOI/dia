@@ -174,8 +174,10 @@ export function extractTargetAudience(text: string): string[] {
   TARGET_RE.lastIndex = 0;
   let m: RegExpExecArray | null;
   while ((m = TARGET_RE.exec(text)) !== null) {
-    const v = m[1].trim();
-    if (isLikelyAudience(v)) raw.add(v);
+    const captured = m[1];
+    if (typeof captured !== 'string') continue;
+    const v = captured.trim();
+    if (v && isLikelyAudience(v)) raw.add(v);
   }
 
   // 年代（20代, 30〜40代 など）

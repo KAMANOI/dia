@@ -92,6 +92,7 @@ interface PromptRequest {
  * - 連続する句点・読点を単一に正規化
  */
 export function normalizeInput(text: string): string {
+  if (typeof text !== 'string') return '';
   return text
     .trim()
     .replace(/\r\n/g, '\n')
@@ -480,7 +481,9 @@ export function getPreferredAIHint(preferredAI: TargetAI): AIHint {
 
 /** 空文字列・空白のみの部分を除いてセクションを結合する */
 function joinSections(...parts: string[]): string {
-  return parts.filter((p) => p.trim().length > 0).join('\n\n');
+  return parts
+    .filter((p): p is string => typeof p === 'string' && p.trim().length > 0)
+    .join('\n\n');
 }
 
 /** modifier に対応する冒頭指示文を返す */

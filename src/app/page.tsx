@@ -12,6 +12,19 @@ import { HistoryPanel } from '@/components/shared/HistoryPanel';
 import type { PromptInput, GeneratedPrompts, PromptVariant, PromptModifier, HistoryItem, ArtifactType } from '@/types';
 import type { StartOption } from '@/components/mobile/StepZero';
 
+// ─── デバッグ用フラグ ───────────────────────────────────────────
+// true にすると buildPrompts をスキップし、固定のダミー結果を返す。
+// 生成処理のどこで止まっているかを切り分けるための一時的な設定。
+// 確認後は必ず false に戻すこと。
+const DEBUG_FORCE_RESULT = false;
+
+const DEBUG_RESULT: GeneratedPrompts = {
+  standard: 'TEST STANDARD',
+  concise: 'TEST CONCISE',
+  precise: 'TEST PRECISE',
+};
+// ────────────────────────────────────────────────────────────────
+
 const DEFAULT_INPUT: PromptInput = {
   artifactType: '文章作成',
   securityLevel: 'level2',
@@ -81,7 +94,9 @@ export default function Home() {
   }, [isDesktop]);
 
   const handleGenerate = useCallback(async (modifier?: PromptModifier | null) => {
-    if (!input.description.trim()) return;
+    // optional chaining: localStorage から復元した input.description が
+    // undefined の場合でも TypeError にならないよう保護する
+    if (!input.description?.trim()) return;
 
     const t0 = Date.now();
     const log = (label: string) =>
@@ -99,34 +114,39 @@ export default function Home() {
     // アニメーションで制御し、「計算待ち」を一切なくす。
     let generated: GeneratedPrompts;
     try {
-      const normalized = normalizeInput(input.description);
-      log('normalizeInput: done');
-
-      // modifier 再生成: description/artifactType が変わっていなければ expandIntent をスキップ
-      const cached = cachedIntentRef.current;
-      const canReuse =
-        modifier != null &&
-        cached != null &&
-        cached.description === input.description &&
-        cached.artifactType === input.artifactType;
-
-      const intent = canReuse
-        ? cached.intent
-        : expandIntent(input.artifactType, normalized);
-
-      if (canReuse) {
-        log('expandIntent: skipped (cached)');
+      if (DEBUG_FORCE_RESULT) {
+        generated = DEBUG_RESULT;
+        log('buildPrompts: SKIPPED (DEBUG_FORCE_RESULT=true)');
       } else {
-        cachedIntentRef.current = {
-          description: input.description,
-          artifactType: input.artifactType,
-          intent,
-        };
-        log('expandIntent: done (fresh)');
-      }
+        const normalized = normalizeInput(input.description);
+        log('normalizeInput: done');
 
-      generated = buildPrompts(input, modifier, intent);
-      log('buildPrompts: done');
+        // modifier 再生成: description/artifactType が変わっていなければ expandIntent をスキップ
+        const cached = cachedIntentRef.current;
+        const canReuse =
+          modifier != null &&
+          cached != null &&
+          cached.description === input.description &&
+          cached.artifactType === input.artifactType;
+
+        const intent = canReuse
+          ? cached.intent
+          : expandIntent(input.artifactType, normalized);
+
+        if (canReuse) {
+          log('expandIntent: skipped (cached)');
+        } else {
+          cachedIntentRef.current = {
+            description: input.description,
+            artifactType: input.artifactType,
+            intent,
+          };
+          log('expandIntent: done (fresh)');
+        }
+
+        generated = buildPrompts(input, modifier, intent);
+        log('buildPrompts: done');
+      }
     } catch (computeErr) {
       console.error(`[DIA:generate] compute ERROR at +${Date.now() - t0}ms:`, computeErr);
       setGenerationError(
@@ -139,8 +159,6 @@ export default function Home() {
     }
 
     // ── Phase 2: UXアニメーション（結果は既に準備済み）──
-    // modifier 再生成は短め（操作に慣れたユーザー向けの素早いフィードバック）
-    // 初回は少し丁寧に見せる
     const STEP_DELAYS = modifier
       ? [200, 175, 175, 150] // 計 ~700ms
       : [300, 250, 250, 200]; // 計 ~1000ms
@@ -175,10 +193,8 @@ export default function Home() {
       if (timedOut) return;
       log('animation done');
 
-      // 結果を表示（計算は Phase 1 で完了済み）
       setPrompts(generated);
 
-      // 履歴保存: useHistory 側で setTimeout(0) により非同期実行済み
       try {
         addHistory({ input, prompts: generated, modifier });
         log('saveHistory: queued');
