@@ -93,131 +93,50 @@ export default function Home() {
     }
   }, [isDesktop]);
 
-  const handleGenerate = useCallback(async (modifier?: PromptModifier | null) => {
-    // optional chaining: localStorage から復元した input.description が
-    // undefined の場合でも TypeError にならないよう保護する
-    if (!input.description?.trim()) return;
-
-    const t0 = Date.now();
-    const log = (label: string) =>
-      console.log(`[DIA:generate] ${label} | +${Date.now() - t0}ms`);
-
-    setIsGenerating(true);
-    setProgressStep(0);
-    setGenerationError(null);
-    generationCount.current += 1;
-    generationStartTime.current = t0;
-    log('start');
-
-    // ── Phase 1: 実処理（同期、< 5ms）──
-    // アニメーション開始前に計算を完了させる。結果の表示タイミングだけを
-    // アニメーションで制御し、「計算待ち」を一切なくす。
-    let generated: GeneratedPrompts;
-    try {
-      if (DEBUG_FORCE_RESULT) {
-        generated = DEBUG_RESULT;
-        log('buildPrompts: SKIPPED (DEBUG_FORCE_RESULT=true)');
-      } else {
-        const normalized = normalizeInput(input.description);
-        log('normalizeInput: done');
-
-        // modifier 再生成: description/artifactType が変わっていなければ expandIntent をスキップ
-        const cached = cachedIntentRef.current;
-        const canReuse =
-          modifier != null &&
-          cached != null &&
-          cached.description === input.description &&
-          cached.artifactType === input.artifactType;
-
-        const intent = canReuse
-          ? cached.intent
-          : expandIntent(input.artifactType, normalized);
-
-        if (canReuse) {
-          log('expandIntent: skipped (cached)');
-        } else {
-          cachedIntentRef.current = {
-            description: input.description,
-            artifactType: input.artifactType,
-            intent,
-          };
-          log('expandIntent: done (fresh)');
-        }
-
-        generated = buildPrompts(input, modifier, intent);
-        log('buildPrompts: done');
-      }
-    } catch (computeErr) {
-      console.error(`[DIA:generate] compute ERROR at +${Date.now() - t0}ms:`, computeErr);
-      setGenerationError(
-        computeErr instanceof Error
-          ? computeErr.message
-          : '生成中にエラーが発生しました。再試行してください。'
-      );
-      setIsGenerating(false);
-      return;
-    }
-
-    // ── Phase 2: UXアニメーション（結果は既に準備済み）──
-    const STEP_DELAYS = modifier
-      ? [200, 175, 175, 150] // 計 ~700ms
-      : [300, 250, 250, 200]; // 計 ~1000ms
-
-    let timedOut = false;
-    const timeoutId = setTimeout(() => {
-      timedOut = true;
-      log('TIMEOUT — forcing isGenerating=false');
-      setGenerationError('少し時間がかかりすぎています。もう一度試してください。');
-      setIsGenerating(false);
-    }, 12000);
+  const handleGenerate = useCallback(async (_modifier?: PromptModifier | null) => {
+    // ══════════════════════════════════════════════════════════
+    // DEBUG: 最小実装モード（e.trim 発生箇所の切り分け用）
+    //
+    // buildPrompts / expandIntent / normalizeInput / saveHistory を
+    // 完全にスキップして固定ダミー結果を返す。
+    //
+    // この状態でも e.trim エラーが出るなら
+    //   → 生成ロジックではなく 初期化 / 履歴復元 / 表示 側が原因
+    // エラーが出なくなるなら
+    //   → 生成ロジック内（buildPrompts 等）が原因
+    // ══════════════════════════════════════════════════════════
+    console.log('[DIA:generate] MINIMAL_MODE start');
+    console.log('[DIA:generate] input.description type:', typeof input.description);
+    console.log('[DIA:generate] input.description value:', String(input.description ?? 'UNDEFINED').slice(0, 60));
 
     try {
-      const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+      setIsGenerating(true);
+      setProgressStep(0);
+      setGenerationError(null);
 
-      await delay(STEP_DELAYS[0]);
-      if (timedOut) return;
-      setProgressStep(1);
-      log('step1');
+      await new Promise<void>((resolve) => setTimeout(resolve, 500));
 
-      await delay(STEP_DELAYS[1]);
-      if (timedOut) return;
-      setProgressStep(2);
-      log('step2');
+      const result: GeneratedPrompts = {
+        standard: 'TEST STANDARD',
+        concise: 'TEST CONCISE',
+        precise: 'TEST PRECISE',
+      };
 
-      await delay(STEP_DELAYS[2]);
-      if (timedOut) return;
-      setProgressStep(3);
-      log('step3');
-
-      await delay(STEP_DELAYS[3]);
-      if (timedOut) return;
-      log('animation done');
-
-      setPrompts(generated);
-
-      try {
-        addHistory({ input, prompts: generated, modifier });
-        log('saveHistory: queued');
-      } catch (historyErr) {
-        console.warn('[DIA:generate] saveHistory failed (non-fatal):', historyErr);
-      }
-
+      console.log('[DIA:generate] setPrompts called');
+      setPrompts(result);
       setActiveTab('standard');
       if (!isDesktop) setStep(3);
-      log('done');
+      console.log('[DIA:generate] MINIMAL_MODE done');
 
-    } catch (err) {
-      const elapsed = Date.now() - t0;
-      console.error(`[DIA:generate] ERROR at +${elapsed}ms:`, err);
-      setGenerationError(
-        err instanceof Error ? err.message : '生成中にエラーが発生しました。再試行してください。'
-      );
+    } catch (err: unknown) {
+      // stack trace を含む完全なエラー情報を出力する
+      const stack = err instanceof Error ? (err.stack ?? err.message) : String(err);
+      console.error('[DIA:generate] CAUGHT ERROR (stack follows):\n' + stack);
+      setGenerationError('生成中にエラーが発生しました。再試行してください。');
     } finally {
-      clearTimeout(timeoutId);
-      if (!timedOut) setIsGenerating(false);
-      console.log(`[DIA:generate] finally | total: ${Date.now() - t0}ms | timedOut=${timedOut}`);
+      setIsGenerating(false);
     }
-  }, [input, isDesktop, addHistory]);
+  }, [isDesktop]);
 
   const handleModify = useCallback((modifier: PromptModifier) => {
     handleGenerate(modifier);

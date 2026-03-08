@@ -9,7 +9,18 @@ export function useHistory() {
 
   // クライアントサイドでのみ読み込む
   useEffect(() => {
-    setHistory(loadHistory());
+    const items = loadHistory();
+    // DEBUG: 読み込んだ履歴の内容を確認（e.trim エラー追跡用）
+    console.log('[DIA:history] loaded count:', items.length);
+    items.forEach((item, i) => {
+      console.log(`[DIA:history] item[${i}]`, {
+        id: item.id,
+        descType: typeof item.input?.description,
+        desc: String(item.input?.description ?? 'MISSING').slice(0, 30),
+        artifactType: item.input?.artifactType,
+      });
+    });
+    setHistory(items);
   }, []);
 
   const addHistory = useCallback(

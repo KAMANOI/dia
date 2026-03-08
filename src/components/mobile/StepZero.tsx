@@ -132,10 +132,8 @@ export function StepZero({ history, onStart, onOpenHistory }: StepZeroProps) {
             </div>
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
               {history.slice(0, 6).map((item) => {
-                const preview =
-                  item.input.description.length > 30
-                    ? item.input.description.slice(0, 30) + '…'
-                    : item.input.description;
+                const desc = typeof item.input.description === 'string' ? item.input.description : '';
+                const preview = desc.length > 30 ? desc.slice(0, 30) + '…' : desc;
                 return (
                   <button
                     key={item.id}

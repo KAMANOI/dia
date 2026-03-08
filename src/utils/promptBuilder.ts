@@ -92,7 +92,9 @@ interface PromptRequest {
  * - 連続する句点・読点を単一に正規化
  */
 export function normalizeInput(text: string): string {
-  if (typeof text !== 'string') return '';
+  // DEBUG: enter log（e.trim 追跡用）
+  console.log('[enter] normalizeInput | type:', typeof text, '| value:', String(text ?? 'UNDEFINED').slice(0, 40));
+  if (typeof text !== 'string') { console.log('[exit] normalizeInput early (not string)'); return ''; }
   return text
     .trim()
     .replace(/\r\n/g, '\n')
@@ -750,6 +752,8 @@ export function buildPrompts(
   modifier?: PromptModifier | null,
   precomputedIntent?: ExpandedIntent,
 ): GeneratedPrompts {
+  // DEBUG: enter log（e.trim 追跡用）
+  console.log('[enter] buildPrompts | description type:', typeof input?.description, '| artifactType:', input?.artifactType);
   const normalized = normalizeInput(input.description);
   const sanitized = sanitizeBySecurityLevel(normalized, input.securityLevel);
   const instruction = getOutputTypeInstruction(input.artifactType);
@@ -767,9 +771,11 @@ export function buildPrompts(
     modifier,
   };
 
-  return {
+  const result = {
     standard: buildStandardPrompt(request),
     concise: buildConcisePrompt(request),
     precise: buildPrecisePrompt(request),
   };
+  console.log('[exit] buildPrompts | standard length:', result.standard.length);
+  return result;
 }

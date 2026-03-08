@@ -30,7 +30,7 @@ const MARKDOWN_OPTIONS: { level: MarkdownLevel; label: string }[] = [
 ];
 
 export function InputPanel({ input, onChange, onGenerate, isGenerating }: InputPanelProps) {
-  const canGenerate = input.description.trim().length > 0;
+  const canGenerate = typeof input.description === 'string' && input.description.trim().length > 0;
 
   return (
     <div className="space-y-6">

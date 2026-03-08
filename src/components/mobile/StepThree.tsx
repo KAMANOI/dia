@@ -47,7 +47,7 @@ export function StepThree({
   onGenerate,
   isGenerating,
 }: StepThreeProps) {
-  const canGenerate = description.trim().length > 0;
+  const canGenerate = typeof description === 'string' && description.trim().length > 0;
   const placeholder = PLACEHOLDERS[artifactType] ?? DEFAULT_PLACEHOLDER;
 
   return (

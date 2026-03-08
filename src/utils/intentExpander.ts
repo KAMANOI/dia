@@ -679,6 +679,8 @@ const OUTPUT_BLUEPRINTS: Record<ArtifactType, string[]> = {
  * @param text       normalizeInput 済みのユーザー入力テキスト
  */
 export function expandIntent(outputType: ArtifactType, text: string): ExpandedIntent {
+  // DEBUG: enter/exit log（e.trim 追跡用）
+  console.log('[enter] expandIntent | outputType:', outputType, '| text type:', typeof text, '| text:', String(text ?? 'UNDEFINED').slice(0, 40));
   const targetAudience = extractTargetAudience(text);
   const tone = extractTone(text);
   const keyConstraints = extractConstraints(text);
@@ -697,7 +699,7 @@ export function expandIntent(outputType: ArtifactType, text: string): ExpandedIn
     outputExpectation.push(`${tone.join('・')}なトーンで統一`);
   }
 
-  return {
+  const result = {
     primaryGoal,
     targetAudience,
     tone,
@@ -709,4 +711,6 @@ export function expandIntent(outputType: ArtifactType, text: string): ExpandedIn
     contextAmplifiers,
     outputBlueprint,
   };
+  console.log('[exit] expandIntent | primaryGoal:', result.primaryGoal.slice(0, 40));
+  return result;
 }

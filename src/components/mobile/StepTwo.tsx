@@ -88,12 +88,13 @@ export function StepTwo({
   onRetry,
 }: StepTwoProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const canGenerate = description.trim().length > 0;
+  // typeof ガード: props が runtime で undefined になっても trim() で落ちないようにする
+  const canGenerate = typeof description === 'string' && description.trim().length > 0;
   const placeholder = PLACEHOLDERS[artifactType] ?? DEFAULT_PLACEHOLDER;
 
   // Prompt Preview: 入力内容からExpandedIntentをリアルタイム計算
   const expandedIntent = useMemo<ExpandedIntent | null>(() => {
-    const trimmed = description.trim();
+    const trimmed = typeof description === 'string' ? description.trim() : '';
     if (trimmed.length < PREVIEW_MIN_LENGTH) return null;
     return expandIntent(artifactType, trimmed);
   }, [description, artifactType]);
