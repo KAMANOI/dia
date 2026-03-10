@@ -12,10 +12,6 @@
 //   3. AdSense 管理画面で対応する広告ユニットを作成し slotId に設定
 // ============================================================
 
-import { useEffect } from 'react';
-
-// ── AdSense 設定 ─────────────────────────────────────────────
-// TODO: AdSense 管理画面の Publisher ID に置き換えてください
 const AD_CLIENT = 'ca-pub-9131163948248205';
 
 export type AdVariant = 'inline' | 'history' | 'footer';
@@ -27,19 +23,11 @@ interface SlotConfig {
   minHeight: number;
 }
 
-// バリアントごとの設定
-// TODO: AdSense 管理画面で各広告ユニットを作成し、slotId を置き換えてください
 const SLOT_CONFIG: Record<AdVariant, SlotConfig> = {
   inline:  { slotId: '9112546878', minHeight: 90 },
-  history: { slotId: 'ZZZZZZZZ', minHeight: 72 },
-  footer:  { slotId: 'WWWWWWWW', minHeight: 90 },
+  history: { slotId: 'ZZZZZZZZ',   minHeight: 72 },
+  footer:  { slotId: 'WWWWWWWW',   minHeight: 90 },
 };
-
-declare global {
-  interface Window {
-    adsbygoogle: unknown[];
-  }
-}
 
 interface AdSlotProps {
   variant: AdVariant;
@@ -49,17 +37,7 @@ interface AdSlotProps {
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 export function AdSlot({ variant, className = '' }: AdSlotProps) {
-  useEffect(() => {
-    if (!IS_PRODUCTION) return;
-    try {
-      window.adsbygoogle = window.adsbygoogle || [];
-      window.adsbygoogle.push({});
-    } catch {
-      // adsbygoogle がロードされていない場合は無視
-    }
-  }, []);
-
-  // 開発環境ではプレースホルダーを表示して広告位置を確認できるようにする
+  // 開発環境: プレースホルダーで広告位置を確認
   if (!IS_PRODUCTION) {
     const { minHeight } = SLOT_CONFIG[variant];
     return (
@@ -97,6 +75,12 @@ export function AdSlot({ variant, className = '' }: AdSlotProps) {
         data-ad-slot={slotId}
         data-ad-format="auto"
         data-full-width-responsive="true"
+      />
+      {/* Google 標準パターン: <ins> 直後に同期実行することで確実に push される */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: '(adsbygoogle=window.adsbygoogle||[]).push({})',
+        }}
       />
     </div>
   );

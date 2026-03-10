@@ -99,6 +99,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja">
+      <head>
+        {/* Google AdSense — production のみロード。<head> への配置が Google 必須要件 */}
+        {process.env.NODE_ENV === 'production' && (
+          <script
+            async
+            src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9131163948248205"
+            crossOrigin="anonymous"
+          />
+        )}
+      </head>
       <body className={`${inter.variable} ${notoSansJP.variable} font-sans`}>
         {children}
         {/* 構造化データ (SoftwareApplication) */}
@@ -106,15 +116,6 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
-        {/* Google AdSense — production のみロード */}
-        {process.env.NODE_ENV === 'production' && (
-          // eslint-disable-next-line @next/next/no-sync-scripts
-          <script
-            async
-            src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9131163948248205"
-            crossOrigin="anonymous"
-          />
-        )}
       </body>
     </html>
   );
