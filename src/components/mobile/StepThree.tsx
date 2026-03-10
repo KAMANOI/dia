@@ -3,6 +3,7 @@
 import type { ArtifactType } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Input';
+import { safeTrim } from '@/utils/safeTrim';
 
 interface StepThreeProps {
   description: string;
@@ -47,7 +48,7 @@ export function StepThree({
   onGenerate,
   isGenerating,
 }: StepThreeProps) {
-  const canGenerate = typeof description === 'string' && description.trim().length > 0;
+  const canGenerate = safeTrim(description).length > 0;
   const placeholder = PLACEHOLDERS[artifactType] ?? DEFAULT_PLACEHOLDER;
 
   return (

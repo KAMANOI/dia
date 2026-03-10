@@ -12,6 +12,7 @@
  */
 
 import type { ArtifactType } from '../types';
+import { safeTrim } from './safeTrim';
 
 // ============================================================
 // 公開型定義
@@ -175,8 +176,7 @@ export function extractTargetAudience(text: string): string[] {
   let m: RegExpExecArray | null;
   while ((m = TARGET_RE.exec(text)) !== null) {
     const captured = m[1];
-    if (typeof captured !== 'string') continue;
-    const v = captured.trim();
+    const v = safeTrim(captured);
     if (v && isLikelyAudience(v)) raw.add(v);
   }
 
@@ -331,7 +331,7 @@ export function extractPrimaryGoal(text: string): string {
     const len = idx - start;
     if (len < 5) continue; // prefix が短すぎる
 
-    const extracted = text.slice(start, idx + ending.length).trim();
+    const extracted = safeTrim(text.slice(start, idx + ending.length));
     if (extracted.length >= 5) return extracted;
   }
 
@@ -343,7 +343,7 @@ export function extractPrimaryGoal(text: string): string {
       break;
     }
   }
-  const first = text.slice(0, firstEnd).trim();
+  const first = safeTrim(text.slice(0, firstEnd));
   return first.slice(0, 60) || text.slice(0, 60);
 }
 
@@ -679,8 +679,6 @@ const OUTPUT_BLUEPRINTS: Record<ArtifactType, string[]> = {
  * @param text       normalizeInput 済みのユーザー入力テキスト
  */
 export function expandIntent(outputType: ArtifactType, text: string): ExpandedIntent {
-  // DEBUG: enter/exit log（e.trim 追跡用）
-  console.log('[enter] expandIntent | outputType:', outputType, '| text type:', typeof text, '| text:', String(text ?? 'UNDEFINED').slice(0, 40));
   const targetAudience = extractTargetAudience(text);
   const tone = extractTone(text);
   const keyConstraints = extractConstraints(text);
@@ -699,7 +697,7 @@ export function expandIntent(outputType: ArtifactType, text: string): ExpandedIn
     outputExpectation.push(`${tone.join('・')}なトーンで統一`);
   }
 
-  const result = {
+  return {
     primaryGoal,
     targetAudience,
     tone,
@@ -711,6 +709,4 @@ export function expandIntent(outputType: ArtifactType, text: string): ExpandedIn
     contextAmplifiers,
     outputBlueprint,
   };
-  console.log('[exit] expandIntent | primaryGoal:', result.primaryGoal.slice(0, 40));
-  return result;
 }

@@ -9,6 +9,7 @@ import type {
 import { ARTIFACT_TYPES, AI_LABELS } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Input';
+import { safeTrim } from '@/utils/safeTrim';
 
 interface InputPanelProps {
   input: PromptInput;
@@ -30,7 +31,7 @@ const MARKDOWN_OPTIONS: { level: MarkdownLevel; label: string }[] = [
 ];
 
 export function InputPanel({ input, onChange, onGenerate, isGenerating }: InputPanelProps) {
-  const canGenerate = typeof input.description === 'string' && input.description.trim().length > 0;
+  const canGenerate = safeTrim(input.description).length > 0;
 
   return (
     <div className="space-y-6">

@@ -7,6 +7,7 @@ import type {
   PromptModifier,
 } from '../types';
 import { ARTIFACT_TYPES } from '../types';
+import { safeTrim } from './safeTrim';
 
 const STORAGE_KEY = 'dia_history';
 const MAX_HISTORY = 50;
@@ -43,7 +44,9 @@ function sanitizeItem(raw: unknown): HistoryItem | null {
   const inp = r.input as Record<string, unknown>;
 
   // description は必須。空文字も除外する（生成不能なため）
-  if (!isStr(inp.description) || !inp.description.trim()) return null;
+  // safeTrim の戻り値を string 型の変数に受け、TypeScript の型を確定させる
+  const description = safeTrim(inp.description);
+  if (!description) return null;
 
   const artifactType: ArtifactType = ARTIFACT_TYPES.includes(inp.artifactType as ArtifactType)
     ? (inp.artifactType as ArtifactType)
@@ -79,7 +82,7 @@ function sanitizeItem(raw: unknown): HistoryItem | null {
   return {
     id,
     createdAt,
-    input: { artifactType, securityLevel, markdownLevel, targetAI, description: inp.description },
+    input: { artifactType, securityLevel, markdownLevel, targetAI, description },
     prompts: { standard: p.standard, concise: p.concise, precise: p.precise },
     modifier,
   };
@@ -116,7 +119,7 @@ function parseRaw(raw: string): { rawItems: unknown[]; needsMigration: boolean }
   if (parsed !== null && typeof parsed === 'object') {
     const env = parsed as Record<string, unknown>;
     if (Array.isArray(env.items)) {
-      const needsMigration = (env as StorageEnvelope).v !== HISTORY_VERSION;
+      const needsMigration = (env as unknown as StorageEnvelope).v !== HISTORY_VERSION;
       return { rawItems: env.items, needsMigration };
     }
   }

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Input';
 import { expandIntent } from '@/utils/intentExpander';
 import type { ExpandedIntent } from '@/utils/intentExpander';
+import { safeTrim } from '@/utils/safeTrim';
 import { GeneratingView } from '@/components/shared/GeneratingView';
 
 interface StepTwoProps {
@@ -88,13 +89,12 @@ export function StepTwo({
   onRetry,
 }: StepTwoProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  // typeof ガード: props が runtime で undefined になっても trim() で落ちないようにする
-  const canGenerate = typeof description === 'string' && description.trim().length > 0;
+  const canGenerate = safeTrim(description).length > 0;
   const placeholder = PLACEHOLDERS[artifactType] ?? DEFAULT_PLACEHOLDER;
 
   // Prompt Preview: 入力内容からExpandedIntentをリアルタイム計算
   const expandedIntent = useMemo<ExpandedIntent | null>(() => {
-    const trimmed = typeof description === 'string' ? description.trim() : '';
+    const trimmed = safeTrim(description);
     if (trimmed.length < PREVIEW_MIN_LENGTH) return null;
     return expandIntent(artifactType, trimmed);
   }, [description, artifactType]);

@@ -20,6 +20,7 @@ import type {
 } from '../types';
 import { expandIntent } from './intentExpander';
 import type { ExpandedIntent } from './intentExpander';
+import { safeTrim } from './safeTrim';
 
 // ============================================================
 // 内部型定義
@@ -92,11 +93,8 @@ interface PromptRequest {
  * - 連続する句点・読点を単一に正規化
  */
 export function normalizeInput(text: string): string {
-  // DEBUG: enter log（e.trim 追跡用）
-  console.log('[enter] normalizeInput | type:', typeof text, '| value:', String(text ?? 'UNDEFINED').slice(0, 40));
-  if (typeof text !== 'string') { console.log('[exit] normalizeInput early (not string)'); return ''; }
-  return text
-    .trim()
+  if (typeof text !== 'string') return '';
+  return safeTrim(text)
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
@@ -484,7 +482,7 @@ export function getPreferredAIHint(preferredAI: TargetAI): AIHint {
 /** 空文字列・空白のみの部分を除いてセクションを結合する */
 function joinSections(...parts: string[]): string {
   return parts
-    .filter((p): p is string => typeof p === 'string' && p.trim().length > 0)
+    .filter((p): p is string => safeTrim(p).length > 0)
     .join('\n\n');
 }
 
@@ -752,8 +750,6 @@ export function buildPrompts(
   modifier?: PromptModifier | null,
   precomputedIntent?: ExpandedIntent,
 ): GeneratedPrompts {
-  // DEBUG: enter log（e.trim 追跡用）
-  console.log('[enter] buildPrompts | description type:', typeof input?.description, '| artifactType:', input?.artifactType);
   const normalized = normalizeInput(input.description);
   const sanitized = sanitizeBySecurityLevel(normalized, input.securityLevel);
   const instruction = getOutputTypeInstruction(input.artifactType);
@@ -771,11 +767,9 @@ export function buildPrompts(
     modifier,
   };
 
-  const result = {
+  return {
     standard: buildStandardPrompt(request),
     concise: buildConcisePrompt(request),
     precise: buildPrecisePrompt(request),
   };
-  console.log('[exit] buildPrompts | standard length:', result.standard.length);
-  return result;
 }
