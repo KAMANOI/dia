@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, Noto_Sans_JP } from 'next/font/google';
-import Script from 'next/script';
 import './globals.css';
 
 /* ============================================================
@@ -109,10 +108,10 @@ export default function RootLayout({
         />
         {/* Google AdSense — production のみロード */}
         {process.env.NODE_ENV === 'production' && (
-          <Script
+          // eslint-disable-next-line @next/next/no-sync-scripts
+          <script
             async
             src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9131163948248205"
-            strategy="afterInteractive"
             crossOrigin="anonymous"
           />
         )}
