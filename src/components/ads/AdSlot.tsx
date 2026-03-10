@@ -30,7 +30,7 @@ interface SlotConfig {
 // バリアントごとの設定
 // TODO: AdSense 管理画面で各広告ユニットを作成し、slotId を置き換えてください
 const SLOT_CONFIG: Record<AdVariant, SlotConfig> = {
-  inline:  { slotId: 'YYYYYYYY', minHeight: 90 },
+  inline:  { slotId: '9112546878', minHeight: 90 },
   history: { slotId: 'ZZZZZZZZ', minHeight: 72 },
   footer:  { slotId: 'WWWWWWWW', minHeight: 90 },
 };
