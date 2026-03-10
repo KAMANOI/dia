@@ -13,19 +13,6 @@ import type { PromptInput, GeneratedPrompts, PromptVariant, PromptModifier, Hist
 import type { StartOption } from '@/components/mobile/StepZero';
 import { safeTrim } from '@/utils/safeTrim';
 
-// ─── デバッグ用フラグ ───────────────────────────────────────────
-// true にすると buildPrompts をスキップし、固定のダミー結果を返す。
-// 生成処理のどこで止まっているかを切り分けるための一時的な設定。
-// 確認後は必ず false に戻すこと。
-const DEBUG_FORCE_RESULT = false;
-
-const DEBUG_RESULT: GeneratedPrompts = {
-  standard: 'TEST STANDARD',
-  concise: 'TEST CONCISE',
-  precise: 'TEST PRECISE',
-};
-// ────────────────────────────────────────────────────────────────
-
 const DEFAULT_INPUT: PromptInput = {
   artifactType: '文章作成',
   securityLevel: 'level2',
@@ -54,8 +41,6 @@ export default function Home() {
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<PromptVariant>('standard');
   const [showHistory, setShowHistory] = useState(false);
-  const generationStartTime = useRef<number>(0);
-
   // expandIntent キャッシュ: modifier 再生成時に expandIntent を再実行しないために使用
   // description / artifactType が変わった場合のみ再計算する
   const cachedIntentRef = useRef<{
@@ -63,36 +48,6 @@ export default function Home() {
     artifactType: ArtifactType;
     intent: ExpandedIntent;
   } | null>(null);
-
-  // ── DEBUG: グローバルエラーログ ──────────────────────────────
-  // unhandledrejection / error をキャプチャして stack trace を出力する。
-  // source map が有効なら実ファイル名・行番号が読める。
-  // 原因特定後は削除すること。
-  useEffect(() => {
-    const onUnhandled = (ev: PromiseRejectionEvent) => {
-      const err = ev.reason;
-      console.error('[DIA:unhandledrejection] reason:', err);
-      if (err instanceof Error) {
-        console.error('[DIA:unhandledrejection:message]', err.message);
-        console.error('[DIA:unhandledrejection:stack]\n' + (err.stack ?? '(no stack)'));
-      } else {
-        console.error('[DIA:unhandledrejection:raw]', String(err));
-      }
-    };
-    const onError = (ev: ErrorEvent) => {
-      console.error('[DIA:error] message:', ev.message, '| file:', ev.filename, '| line:', ev.lineno, '| col:', ev.colno);
-      if (ev.error instanceof Error) {
-        console.error('[DIA:error:stack]\n' + (ev.error.stack ?? '(no stack)'));
-      }
-    };
-    window.addEventListener('unhandledrejection', onUnhandled);
-    window.addEventListener('error', onError);
-    return () => {
-      window.removeEventListener('unhandledrejection', onUnhandled);
-      window.removeEventListener('error', onError);
-    };
-  }, []);
-  // ─────────────────────────────────────────────────────────────
 
   // 生成が長引いた場合(>2.5s)に低速接続メッセージを表示
   useEffect(() => {
@@ -127,54 +82,37 @@ export default function Home() {
   const handleGenerate = useCallback(async (modifier?: PromptModifier | null) => {
     if (!safeTrim(input.description)) return;
 
-    const t0 = Date.now();
-    const log = (label: string) =>
-      console.log(`[DIA:generate] ${label} | +${Date.now() - t0}ms`);
-
     setIsGenerating(true);
     setProgressStep(0);
     setGenerationError(null);
     generationCount.current += 1;
-    generationStartTime.current = t0;
-    log('start');
 
     // ── Phase 1: 実処理（同期）──
     let generated: GeneratedPrompts;
     try {
-      if (DEBUG_FORCE_RESULT) {
-        generated = DEBUG_RESULT;
-        log('buildPrompts: SKIPPED (DEBUG_FORCE_RESULT=true)');
-      } else {
-        const normalized = normalizeInput(input.description);
-        log('normalizeInput: done');
+      const normalized = normalizeInput(input.description);
 
-        const cached = cachedIntentRef.current;
-        const canReuse =
-          modifier != null &&
-          cached != null &&
-          cached.description === input.description &&
-          cached.artifactType === input.artifactType;
+      const cached = cachedIntentRef.current;
+      const canReuse =
+        modifier != null &&
+        cached != null &&
+        cached.description === input.description &&
+        cached.artifactType === input.artifactType;
 
-        const intent = canReuse
-          ? cached.intent
-          : expandIntent(input.artifactType, normalized);
+      const intent = canReuse
+        ? cached.intent
+        : expandIntent(input.artifactType, normalized);
 
-        if (canReuse) {
-          log('expandIntent: skipped (cached)');
-        } else {
-          cachedIntentRef.current = {
-            description: input.description,
-            artifactType: input.artifactType,
-            intent,
-          };
-          log('expandIntent: done (fresh)');
-        }
-
-        generated = buildPrompts(input, modifier, intent);
-        log('buildPrompts: done');
+      if (!canReuse) {
+        cachedIntentRef.current = {
+          description: input.description,
+          artifactType: input.artifactType,
+          intent,
+        };
       }
+
+      generated = buildPrompts(input, modifier, intent);
     } catch (computeErr) {
-      console.error(`[DIA:generate] compute ERROR at +${Date.now() - t0}ms:`, computeErr);
       setGenerationError(
         computeErr instanceof Error
           ? computeErr.message
@@ -192,7 +130,6 @@ export default function Home() {
     let timedOut = false;
     const timeoutId = setTimeout(() => {
       timedOut = true;
-      log('TIMEOUT — forcing isGenerating=false');
       setGenerationError('少し時間がかかりすぎています。もう一度試してください。');
       setIsGenerating(false);
     }, 12000);
@@ -203,45 +140,30 @@ export default function Home() {
       await delay(STEP_DELAYS[0]);
       if (timedOut) return;
       setProgressStep(1);
-      log('step1');
 
       await delay(STEP_DELAYS[1]);
       if (timedOut) return;
       setProgressStep(2);
-      log('step2');
 
       await delay(STEP_DELAYS[2]);
       if (timedOut) return;
       setProgressStep(3);
-      log('step3');
 
       await delay(STEP_DELAYS[3]);
       if (timedOut) return;
-      log('animation done');
 
       setPrompts(generated);
-
-      try {
-        addHistory({ input, prompts: generated, modifier });
-        log('saveHistory: queued');
-      } catch (historyErr) {
-        console.warn('[DIA:generate] saveHistory failed (non-fatal):', historyErr);
-      }
-
+      addHistory({ input, prompts: generated, modifier });
       setActiveTab('standard');
       if (!isDesktop) setStep(3);
-      log('done');
 
     } catch (err) {
-      const elapsed = Date.now() - t0;
-      console.error(`[DIA:generate] ERROR at +${elapsed}ms:`, err);
       setGenerationError(
         err instanceof Error ? err.message : '生成中にエラーが発生しました。再試行してください。'
       );
     } finally {
       clearTimeout(timeoutId);
       if (!timedOut) setIsGenerating(false);
-      log(`finally | total: ${Date.now() - t0}ms | timedOut=${timedOut}`);
     }
   }, [input, isDesktop, addHistory]);
 
