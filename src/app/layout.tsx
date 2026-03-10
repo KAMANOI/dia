@@ -23,24 +23,48 @@ const notoSansJP = Noto_Sans_JP({
    メタデータ
    ============================================================ */
 const SITE_URL = 'https://dia-wheat.vercel.app';
+const SITE_TITLE = 'DIA – 日本語からAIプロンプト生成ツール';
+const SITE_DESCRIPTION =
+  '日本語でやりたいことを書くと、ChatGPT / Claude / AI用の高品質プロンプトを生成します。';
+const OG_IMAGE = `${SITE_URL}/opengraph-image`;
 
 export const metadata: Metadata = {
-  title: 'DIA – 日本語からAIの指示へ',
-  description:
-    '日本語入力からAI用プロンプトを生成。ChatGPT・Claude・Geminiにそのまま使えるコピペ用プロンプトを作成できます。',
-  keywords: ['AI', 'プロンプト', 'ChatGPT', 'Claude', 'Gemini', 'AIツール', 'プロンプト生成', 'AIプロンプト'],
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  keywords: [
+    'AIプロンプト生成',
+    'prompt generator',
+    'ChatGPT prompt',
+    'Claude prompt',
+    'AI tool',
+    'プロンプト生成',
+    'AIツール',
+    'ChatGPT',
+    'Claude',
+    'Gemini',
+  ],
   robots: { index: true, follow: true },
   alternates: { canonical: SITE_URL },
   openGraph: {
-    title: 'DIA – 日本語からAIの指示へ',
-    description: '日本語入力からAI用プロンプトを生成するツール',
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
     url: SITE_URL,
     type: 'website',
+    images: [
+      {
+        url: OG_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: 'DIA – 日本語からAIプロンプト生成ツール',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'DIA – 日本語からAIの指示へ',
-    description: '日本語入力からAI用プロンプトを生成するツール',
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: [OG_IMAGE],
   },
 };
 
@@ -48,6 +72,25 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
+};
+
+/* ============================================================
+   構造化データ（SoftwareApplication schema）
+   ============================================================ */
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'DIA',
+  description: SITE_DESCRIPTION,
+  url: SITE_URL,
+  applicationCategory: 'UtilitiesApplication',
+  operatingSystem: 'Web',
+  inLanguage: 'ja',
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'JPY',
+  },
 };
 
 export default function RootLayout({
@@ -59,6 +102,11 @@ export default function RootLayout({
     <html lang="ja">
       <body className={`${inter.variable} ${notoSansJP.variable} font-sans`}>
         {children}
+        {/* 構造化データ (SoftwareApplication) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
         {/* Google AdSense — production のみロード */}
         {process.env.NODE_ENV === 'production' && (
           <Script
