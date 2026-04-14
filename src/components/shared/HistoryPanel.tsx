@@ -3,7 +3,6 @@
 import { Fragment } from 'react';
 import type { HistoryItem, PromptVariant } from '@/types';
 import { SecurityBadge } from '@/components/ui/SecurityBadge';
-import { AdSlot } from '@/components/ads';
 
 interface HistoryPanelProps {
   history: HistoryItem[];
@@ -67,18 +66,13 @@ export function HistoryPanel({
             </div>
           ) : (
             <ul className="p-4 flex flex-col gap-2.5">
-              {history.map((item, index) => (
+              {history.map((item) => (
                 <Fragment key={item.id}>
                   <HistoryCard
                     item={item}
                     onLoad={() => onLoad(item)}
                     onDelete={() => onDelete(item.id)}
                   />
-                  {index === 1 && history.length >= 3 && (
-                    <li aria-hidden="true">
-                      <AdSlot variant="history" />
-                    </li>
-                  )}
                 </Fragment>
               ))}
             </ul>

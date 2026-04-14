@@ -36,9 +36,13 @@ export default function PrivacyPage() {
 
       <h2>広告について</h2>
       <p>
-        本サービスは、将来的にGoogle AdSenseなどの第三者広告サービスを利用する予定です。
-        これらの広告サービスは、ユーザーの興味に基づいた広告を表示するためにCookieを使用する場合があります。
-        詳細はGoogle のプライバシーポリシーをご確認ください。
+        本サービスは、Google AdSenseを利用してガイド・記事ページに広告を表示しています。
+        Google AdSenseはユーザーの興味に基づいた広告を表示するためにCookieを使用する場合があります。
+        ユーザーはブラウザの設定によりCookieを無効にすることができます。
+        詳細は<a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Googleのプライバシーポリシー</a>をご確認ください。
+      </p>
+      <p>
+        なお、ツール画面（プロンプト生成・結果表示）には広告を表示していません。
       </p>
 
       <h2>アクセス解析</h2>

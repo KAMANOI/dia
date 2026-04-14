@@ -5,7 +5,6 @@ import { MODIFIER_LABELS } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Tabs } from '@/components/ui/Tabs';
 import { CopyButton } from '@/components/shared/CopyButton';
-import { AdSlot } from '@/components/ads';
 
 interface StepFourProps {
   prompts: GeneratedPrompts;
@@ -91,9 +90,6 @@ export function StepFour({
             ))}
           </div>
         </div>
-
-        {/* 広告スロット: コピー・改善アクション後の自然な区切り */}
-        <AdSlot variant="inline" className="mt-5" />
 
         {/* 全案まとめてコピー */}
         <div className="mt-4 px-4 py-3 rounded-card border border-line bg-[#FAFAFA] flex items-center justify-between gap-4">

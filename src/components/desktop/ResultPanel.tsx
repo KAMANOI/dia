@@ -4,7 +4,6 @@ import type { GeneratedPrompts, PromptVariant, PromptModifier } from '@/types';
 import { MODIFIER_LABELS } from '@/types';
 import { PromptCard } from '@/components/shared/PromptCard';
 import { CopyButton } from '@/components/shared/CopyButton';
-import { AdSlot } from '@/components/ads';
 import { GeneratingView } from '@/components/shared/GeneratingView';
 
 interface ResultPanelProps {
@@ -125,9 +124,6 @@ export function ResultPanel({ prompts, isGenerating, progressStep, isSlowConnect
         </div>
       </div>
 
-      {/* 広告スロット: 結果・コピー・改善アクションの後 */}
-      {/* 配置意図: プロンプト生成フローが完了した後の自然な区切り位置 */}
-      <AdSlot variant="inline" />
     </div>
   );
 }

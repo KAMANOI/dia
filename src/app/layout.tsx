@@ -22,9 +22,9 @@ const notoSansJP = Noto_Sans_JP({
    メタデータ
    ============================================================ */
 const SITE_URL = 'https://dia-wheat.vercel.app';
-const SITE_TITLE = 'DIA – 日本語からAIプロンプト生成ツール';
+const SITE_TITLE = 'DIA — 日本語からAIプロンプトを生成';
 const SITE_DESCRIPTION =
-  '日本語でやりたいことを書くと、ChatGPT / Claude / AI用の高品質プロンプトを生成します。';
+  '日本語で書くだけでAIに最適なプロンプトを生成。ChatGPT・Claude対応のプロンプトジェネレーター。';
 const OG_IMAGE = `${SITE_URL}/opengraph-image`;
 
 export const metadata: Metadata = {
