@@ -23,6 +23,9 @@ export function Footer() {
             © 2026 DIA &nbsp;|&nbsp; 運営者: Hiroki Kamanoi
           </p>
           <nav className="flex items-center gap-5">
+            <Link href="/about" className="text-xs text-ink-muted hover:text-ink transition-colors">
+              DIAについて
+            </Link>
             <Link href="/privacy" className="text-xs text-ink-muted hover:text-ink transition-colors">
               プライバシーポリシー
             </Link>
