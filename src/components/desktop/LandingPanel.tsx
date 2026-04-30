@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import type { ArtifactType } from '@/types';
 
 interface LandingPanelProps {
@@ -82,6 +83,51 @@ export function LandingPanel({ onSelectType }: LandingPanelProps) {
         <p className="text-xs text-ink-muted mt-2.5">
           ← タイプをクリックすると左パネルに反映されます
         </p>
+      </section>
+
+      {/* 専門ツール */}
+      <section>
+        <h3 className="text-[11px] font-semibold text-ink-muted tracking-widest uppercase mb-3">
+          専門ツール
+        </h3>
+        <div className="space-y-2.5">
+          <Link
+            href="/image"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl border border-[#272930] bg-[#0d0d10] hover:border-[#7c6af7]/50 transition-colors group"
+            style={{ textDecoration: 'none' }}
+          >
+            <span className="text-lg">🎨</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white group-hover:text-[#7c6af7] transition-colors leading-none mb-0.5">
+                画像プロンプト
+              </p>
+              <p className="text-[11px] text-[#6b7280] truncate">
+                MJ · NAI3 · SD · Flux · GPT Image · DALL-E 3 など 8ツール
+              </p>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </Link>
+          <Link
+            href="/video"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl border border-[#272930] bg-[#0d0d10] hover:border-[#f59e0b]/50 transition-colors group"
+            style={{ textDecoration: 'none' }}
+          >
+            <span className="text-lg">🎬</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white group-hover:text-[#f59e0b] transition-colors leading-none mb-0.5">
+                動画プロンプト
+              </p>
+              <p className="text-[11px] text-[#6b7280] truncate">
+                Kling · Hailuo · Seedance · Runway · Luma など 8ツール
+              </p>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </Link>
+        </div>
       </section>
 
       {/* Safety note */}

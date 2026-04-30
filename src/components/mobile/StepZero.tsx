@@ -179,6 +179,51 @@ export function StepZero({ history, onStart, onOpenHistory }: StepZeroProps) {
           </section>
         )}
 
+        {/* 専門プロンプトツール */}
+        <section className="mb-8">
+          <h2 className="text-[11px] font-semibold text-ink-muted tracking-widest uppercase mb-3">
+            専門ツール
+          </h2>
+          <div className="space-y-2.5">
+            <Link
+              href="/image"
+              className="flex items-center gap-3.5 px-4 py-3.5 rounded-card border border-line bg-[#0d0d10] hover:border-[#7c6af7]/60 transition-colors active:scale-[0.98] block"
+              style={{ textDecoration: 'none' }}
+            >
+              <span className="text-xl">🎨</span>
+              <div>
+                <p className="text-sm font-semibold text-white leading-none mb-0.5">
+                  画像プロンプトジェネレーター
+                </p>
+                <p className="text-xs" style={{ color: '#9ca3af' }}>
+                  MJ / NovelAI / SD / Flux / GPT Image など 8ツール対応
+                </p>
+              </div>
+              <svg className="ml-auto flex-shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </Link>
+            <Link
+              href="/video"
+              className="flex items-center gap-3.5 px-4 py-3.5 rounded-card border border-line bg-[#0d0d10] hover:border-[#f59e0b]/60 transition-colors active:scale-[0.98] block"
+              style={{ textDecoration: 'none' }}
+            >
+              <span className="text-xl">🎬</span>
+              <div>
+                <p className="text-sm font-semibold text-white leading-none mb-0.5">
+                  動画プロンプトジェネレーター
+                </p>
+                <p className="text-xs" style={{ color: '#9ca3af' }}>
+                  Kling / Hailuo / Seedance / Runway など 8ツール対応
+                </p>
+              </div>
+              <svg className="ml-auto flex-shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </Link>
+          </div>
+        </section>
+
         {/* フッターリンク */}
         <div className="flex items-center justify-center gap-4 pt-2 pb-4 border-t border-line mt-6">
           <Link href="/privacy" className="text-xs text-ink-muted hover:text-ink transition-colors">
