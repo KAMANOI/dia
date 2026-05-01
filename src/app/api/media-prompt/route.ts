@@ -145,25 +145,32 @@ export async function POST(req: NextRequest) {
     type === 'image' ? buildImageSystemPrompt() : buildVideoSystemPrompt();
 
   try {
-    const geminiRes = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ role: 'user', parts: [{ text: userMessage }] }],
-        generationConfig: {
-          temperature: 0.85,
-          maxOutputTokens: 3000,
-          responseMimeType: 'application/json',
-        },
-      }),
+    const requestBody = JSON.stringify({
+      system_instruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+      generationConfig: {
+        temperature: 0.85,
+        maxOutputTokens: 3000,
+        responseMimeType: 'application/json',
+      },
     });
 
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text();
+    let geminiRes: Response | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) await new Promise(r => setTimeout(r, attempt * 1500));
+      geminiRes = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: requestBody,
+      });
+      if (geminiRes.ok || ![503, 429].includes(geminiRes.status)) break;
+    }
+
+    if (!geminiRes!.ok) {
+      const errText = await geminiRes!.text();
       console.error('Gemini API error:', errText);
       return NextResponse.json(
-        { error: `Gemini API request failed. Status: ${geminiRes.status}. Detail: ${errText}` },
+        { error: `Gemini API request failed. Status: ${geminiRes!.status}. Detail: ${errText}` },
         { status: 502 }
       );
     }
