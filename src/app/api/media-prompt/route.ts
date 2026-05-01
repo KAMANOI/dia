@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
       const errText = await geminiRes.text();
       console.error('Gemini API error:', errText);
       return NextResponse.json(
-        { error: 'Gemini API request failed.' },
+        { error: `Gemini API request failed. Status: ${geminiRes.status}. Detail: ${errText}` },
         { status: 502 }
       );
     }
