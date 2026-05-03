@@ -158,9 +158,12 @@ export async function POST(req: NextRequest) {
     let geminiRes: Response | null = null;
     for (let attempt = 0; attempt < 3; attempt++) {
       if (attempt > 0) await new Promise(r => setTimeout(r, attempt * 1500));
-      geminiRes = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+      geminiRes = await fetch(GEMINI_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
         body: requestBody,
       });
       if (geminiRes.ok || ![503, 429].includes(geminiRes.status)) break;
@@ -168,9 +171,9 @@ export async function POST(req: NextRequest) {
 
     if (!geminiRes!.ok) {
       const errText = await geminiRes!.text();
-      console.error('Gemini API error:', errText);
+      console.error('Gemini API error:', geminiRes!.status, errText);
       return NextResponse.json(
-        { error: `Gemini API request failed. Status: ${geminiRes!.status}. Detail: ${errText}` },
+        { error: 'Prompt generation failed. Please try again.' },
         { status: 502 }
       );
     }
@@ -208,22 +211,27 @@ export async function POST(req: NextRequest) {
 
 type Params = Record<string, string | boolean>;
 
+function cap(val: unknown, max = 300): string {
+  const s = typeof val === 'string' ? val : '';
+  return s.slice(0, max);
+}
+
 function buildImageUserMessage(tool: string, params: Params): string {
   const lines = [
-    `TOOL: ${tool}`,
-    `SUBJECT/SCENE: ${params.subject || '(not specified)'}`,
-    `STYLE: ${params.style || '(not specified)'}`,
-    `MOOD/ATMOSPHERE: ${params.mood || '(not specified)'}`,
-    `LIGHTING: ${params.lighting || '(not specified)'}`,
-    `COMPOSITION: ${params.composition || '(not specified)'}`,
-    `ASPECT RATIO: ${params.aspectRatio || '1:1'}`,
+    `TOOL: ${cap(tool, 50)}`,
+    `SUBJECT/SCENE: ${cap(params.subject) || '(not specified)'}`,
+    `STYLE: ${cap(params.style) || '(not specified)'}`,
+    `MOOD/ATMOSPHERE: ${cap(params.mood) || '(not specified)'}`,
+    `LIGHTING: ${cap(params.lighting) || '(not specified)'}`,
+    `COMPOSITION: ${cap(params.composition) || '(not specified)'}`,
+    `ASPECT RATIO: ${cap(params.aspectRatio, 20) || '1:1'}`,
     `NSFW: ${params.nsfw ? 'YES — include mature/adult content appropriate for this tool' : 'NO — keep safe for work'}`,
   ];
 
-  if (params.characterDetail) lines.push(`CHARACTER DETAIL: ${params.characterDetail}`);
-  if (params.additionalTags) lines.push(`ADDITIONAL TAGS/DETAILS: ${params.additionalTags}`);
-  if (params.negativePrompt) lines.push(`REQUESTED NEGATIVE PROMPT ELEMENTS: ${params.negativePrompt}`);
-  if (params.mjVersion) lines.push(`MIDJOURNEY VERSION: v${params.mjVersion}`);
+  if (params.characterDetail) lines.push(`CHARACTER DETAIL: ${cap(params.characterDetail)}`);
+  if (params.additionalTags) lines.push(`ADDITIONAL TAGS/DETAILS: ${cap(params.additionalTags)}`);
+  if (params.negativePrompt) lines.push(`REQUESTED NEGATIVE PROMPT ELEMENTS: ${cap(params.negativePrompt)}`);
+  if (params.mjVersion) lines.push(`MIDJOURNEY VERSION: v${cap(params.mjVersion, 10)}`);
 
   lines.push('\nGenerate 3 optimized prompt variants for this tool and input.');
   return lines.join('\n');
@@ -231,19 +239,19 @@ function buildImageUserMessage(tool: string, params: Params): string {
 
 function buildVideoUserMessage(tool: string, params: Params): string {
   const lines = [
-    `TOOL: ${tool}`,
-    `SCENE/SETTING: ${params.scene || '(not specified)'}`,
-    `SUBJECT/CHARACTER: ${params.subject || '(not specified)'}`,
-    `ACTION/MOTION: ${params.action || '(not specified)'}`,
-    `CAMERA MOVEMENT: ${params.cameraMovement || '(not specified)'}`,
-    `STYLE/AESTHETIC: ${params.style || '(not specified)'}`,
-    `MOOD/ATMOSPHERE: ${params.mood || '(not specified)'}`,
-    `ASPECT RATIO: ${params.aspectRatio || '16:9'}`,
-    `DURATION: ${params.duration || 'auto'}`,
+    `TOOL: ${cap(tool, 50)}`,
+    `SCENE/SETTING: ${cap(params.scene) || '(not specified)'}`,
+    `SUBJECT/CHARACTER: ${cap(params.subject) || '(not specified)'}`,
+    `ACTION/MOTION: ${cap(params.action) || '(not specified)'}`,
+    `CAMERA MOVEMENT: ${cap(params.cameraMovement) || '(not specified)'}`,
+    `STYLE/AESTHETIC: ${cap(params.style) || '(not specified)'}`,
+    `MOOD/ATMOSPHERE: ${cap(params.mood) || '(not specified)'}`,
+    `ASPECT RATIO: ${cap(params.aspectRatio, 20) || '16:9'}`,
+    `DURATION: ${cap(params.duration, 20) || 'auto'}`,
     `NSFW: ${params.nsfw ? 'YES — include mature/adult content appropriate for this tool' : 'NO — keep safe for work'}`,
   ];
 
-  if (params.additionalDetails) lines.push(`ADDITIONAL DETAILS: ${params.additionalDetails}`);
+  if (params.additionalDetails) lines.push(`ADDITIONAL DETAILS: ${cap(params.additionalDetails)}`);
 
   lines.push('\nGenerate 3 optimized video prompt variants for this tool and input.');
   return lines.join('\n');
