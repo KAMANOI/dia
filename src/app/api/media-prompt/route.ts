@@ -1,13 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Vercel の関数の最大実行時間。Gemini 呼び出しは 12秒 × 最大2回 ＋ 再送待ち1.5秒 ＝ 25.5秒に収まる。
+export const maxDuration = 30;
+
 const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
 
 // ── ガード（エラーコードは docs/error-codes.md）────────────────────────────
 
-/** 自サイトのオリジン。layout.tsx の canonical と同じ値を既定にする。 */
-const ALLOWED_ORIGIN =
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://dia-wheat.vercel.app';
+/**
+ * 許可するオリジン。NEXT_PUBLIC_SITE_URL ＋ layout.tsx の canonical ＋
+ * DIA_ALLOWED_ORIGINS（カンマ区切り・任意）。
+ * 方針：**プレビューデプロイ（*-kamanois-projects.vercel.app）は許可しない**。
+ * プレビューは URL が都度変わり、ワイルドカードで許すと第三者のPRデプロイまで通るため。
+ * プレビューで /image・/video を試す時だけ DIA_ALLOWED_ORIGINS にその URL を明示して入れる。
+ */
+const ALLOWED_ORIGINS = [
+  process.env.NEXT_PUBLIC_SITE_URL,
+  'https://dia-wheat.vercel.app',
+  ...(process.env.DIA_ALLOWED_ORIGINS?.split(',') ?? []),
+]
+  .map(o => o?.trim())
+  .filter((o): o is string => !!o);
 
 const RATE_LIMIT = 20;
 const RATE_WINDOW_MS = 60 * 60 * 1000;
@@ -47,7 +61,7 @@ function overRateLimit(ip: string): boolean {
 function isSameOrigin(req: NextRequest): boolean {
   const src = req.headers.get('origin') ?? req.headers.get('referer');
   if (!src) return false;
-  if (src === ALLOWED_ORIGIN || src.startsWith(ALLOWED_ORIGIN + '/')) return true;
+  if (ALLOWED_ORIGINS.some(o => src === o || src.startsWith(o + '/'))) return true;
   // next dev（本番以外）では localhost からの呼び出しを許可する
   return (
     process.env.NODE_ENV !== 'production' &&
@@ -187,7 +201,7 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
-      { error: 'Gemini API key is not configured (set GEMINI_API_KEY or GOOGLE_API_KEY).', code: 'E500' },
+      { error: 'Gemini API key is not configured (set GEMINI_API_KEY or GOOGLE_API_KEY).', code: 'E501' },
       { status: 500 }
     );
   }
@@ -237,8 +251,8 @@ export async function POST(req: NextRequest) {
           'x-goog-api-key': apiKey,
         },
         body: requestBody,
-        // 応答が返らない時に関数の最大実行時間まで詰まらないよう20秒で打ち切る
-        signal: AbortSignal.timeout(20_000),
+        // 応答が返らない時に関数の最大実行時間まで詰まらないよう12秒で打ち切る
+        signal: AbortSignal.timeout(12_000),
       });
 
     // 503（一時的な不調）のみ1回だけ再送する。
@@ -251,7 +265,7 @@ export async function POST(req: NextRequest) {
 
     if (!geminiRes.ok) {
       const errText = await geminiRes.text();
-      console.error('Gemini API error:', geminiRes.status, errText);
+      console.error('Gemini API error:', geminiRes.status, errText.slice(0, 200));
       return NextResponse.json(
         { error: 'Prompt generation failed. Please try again.', code: 'E502' },
         { status: 502 }

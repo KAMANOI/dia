@@ -5,12 +5,14 @@
  *   node scripts/verify-media-prompt-guard.mjs     （事前に `npm run build` が必要）
  *
  * 確認するのは3点：
- *   ① DIA_MEDIA_PROMPT_ENABLED 未設定 → 503 / code E503（既定オフのフェイルクローズ）
- *   ② Origin が自サイト以外            → 403 / code E403
- *   ③ 同一IPから21回目                 → 429 / code E429
+ *   ① DIA_MEDIA_PROMPT_ENABLED 未設定  → 503 / code E503（既定オフのフェイルクローズ）
+ *   ② Origin が許可オリジン以外         → 403 / code E403
+ *   ②b Origin も Referer も無い         → 403 / code E403
+ *   ②c DIA_ALLOWED_ORIGINS で足したもの → 通過（キー無しなので 500 / code E501）
+ *   ③ 同一IPから21回目                  → 429 / code E429
  *
  * Gemini 本体は呼ばない：②③のフェーズは DIA_MEDIA_PROMPT_ENABLED=1 かつ
- * APIキーを子プロセスの環境から明示的に外して起動するため、通過しても 500(E500) で止まる。
+ * APIキーを子プロセスの環境から明示的に外して起動するため、通過しても 500(E501) で止まる。
  */
 import { spawn } from 'node:child_process';
 import { execFileSync } from 'node:child_process';
@@ -19,6 +21,7 @@ const ROOT = new URL('..', import.meta.url).pathname;
 const PORT = 3987;
 const BASE = `http://127.0.0.1:${PORT}`;
 const ORIGIN = 'https://dia-wheat.vercel.app';
+const EXTRA_ORIGIN = 'https://dia-preview.example';
 const IP = '203.0.113.9';
 
 const results = [];
@@ -83,7 +86,7 @@ async function main() {
   }
 
   // ── フェーズB：有効化（ただしAPIキーなし）
-  child = await startServer({ DIA_MEDIA_PROMPT_ENABLED: '1' });
+  child = await startServer({ DIA_MEDIA_PROMPT_ENABLED: '1', DIA_ALLOWED_ORIGINS: EXTRA_ORIGIN });
   try {
     const bad = post({ origin: 'https://evil.example' });
     check('② Origin不一致 → 403 E403', bad.status === 403 && bad.body.code === 'E403',
@@ -93,10 +96,15 @@ async function main() {
     check('②b Origin/Referer なし → 403 E403', none.status === 403 && none.body.code === 'E403',
       `status=${none.status} code=${none.body.code}`);
 
+    const extra = post({ origin: EXTRA_ORIGIN, ip: '198.51.100.7' });
+    check('②c DIA_ALLOWED_ORIGINS のオリジンは通過（キー無しで500 E501）',
+      extra.status === 500 && extra.body.code === 'E501',
+      `status=${extra.status} code=${extra.body.code}`);
+
     let last = null;
     for (let i = 1; i <= 20; i++) last = post({ origin: ORIGIN });
-    check('③a 20回目まではレート制限を通過（APIキー無しで500 E500に到達）',
-      last.status === 500 && last.body.code === 'E500',
+    check('③a 20回目まではレート制限を通過（APIキー無しで500 E501に到達）',
+      last.status === 500 && last.body.code === 'E501',
       `20回目: status=${last.status} code=${last.body.code}`);
 
     const over = post({ origin: ORIGIN });
@@ -104,7 +112,7 @@ async function main() {
       `status=${over.status} code=${over.body.code}`);
 
     const otherIp = post({ origin: ORIGIN, ip: '198.51.100.4' });
-    check('③c 別IPは影響を受けない', otherIp.status === 500 && otherIp.body.code === 'E500',
+    check('③c 別IPは影響を受けない', otherIp.status === 500 && otherIp.body.code === 'E501',
       `status=${otherIp.status} code=${otherIp.body.code}`);
   } finally {
     await stopServer(child);

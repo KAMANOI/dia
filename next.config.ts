@@ -6,7 +6,8 @@ import type { NextConfig } from 'next';
 const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'X-Frame-Options', value: 'DENY' },
-  { key: 'Referrer-Policy', value: 'no-referrer' },
+  // AdSense の計測に影響しないよう他製品と同じ既定にする（同一オリジンには Referer が残る）
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   {
     key: 'Permissions-Policy',
     value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',

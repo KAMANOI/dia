@@ -19,10 +19,11 @@
 | code | HTTP | 返る条件 | 利用者向けメッセージ | 対応 |
 |---|---|---|---|---|
 | `E503` | 503 | 環境変数 `DIA_MEDIA_PROMPT_ENABLED` が `"1"` でない（既定オフ＝フェイルクローズ） | 画像・動画プロンプト生成は現在停止中です。 | 意図した停止。再開するなら Vercel の環境変数で `1` を設定して再デプロイ |
-| `E403` | 403 | `Origin`／`Referer` が自サイト（`NEXT_PUBLIC_SITE_URL`、未設定なら `https://dia-wheat.vercel.app`）でない。両方欠けている場合も含む | このAPIは本サイトからのみ利用できます。 | 本サイトのフォームから利用する。**これは認証ではない**（ヘッダは呼び出し側が自由に付けられる）＝ブラウザ以外からの直接呼び出しを面倒にするだけの措置 |
+| `E403` | 403 | `Origin`／`Referer` が許可オリジン（`NEXT_PUBLIC_SITE_URL` ＋ `https://dia-wheat.vercel.app` ＋ `DIA_ALLOWED_ORIGINS`）のいずれでもない。両方のヘッダが欠けている場合も含む。**プレビューデプロイは既定で不許可** | このAPIは本サイトからのみ利用できます。 | 本サイトのフォームから利用する。**これは認証ではない**（ヘッダは呼び出し側が自由に付けられる）＝ブラウザ以外からの直接呼び出しを面倒にするだけの措置 |
 | `E429` | 429 | 同一 IP（`x-forwarded-for` の先頭）から 20回/時 を超えた | 利用回数の上限に達しました。しばらく待ってからお試しください。 | 1時間待つ。**カウントはインスタンス内メモリのみ**でサーバレスでは分散・コールドスタートで消えるため、全体上限としては効かない（`route.ts` の `ponytail:` コメント参照） |
 | `E400` | 400 | JSON として読めない／`type` `tool` `params` のいずれかが無い | Invalid JSON body. ／ Missing required fields. | 画面から普通に使っている限り出ない。出たら不具合 |
-| `E500` | 500 | Gemini API キーが未設定／想定外の例外（fetch のタイムアウト20秒の中断を含む） | Gemini API key is not configured... ／ Internal server error. | Vercel の環境変数 `GEMINI_API_KEY` を確認。ログに例外が出る |
-| `E502` | 502 | Gemini が失敗を返した（503 は1回だけ再送・**429 は再送しない**）／応答が JSON として読めない | Prompt generation failed. Please try again. ／ Failed to parse Gemini response. | 時間をおいて再試行。続くなら Google 側の枠・キーの状態を確認 |
+| `E501` | 500 | **Gemini API キーが未設定**（`GEMINI_API_KEY`／`GOOGLE_API_KEY` のいずれも無い）＝設定漏れ | Gemini API key is not configured... | Vercel の環境変数に `GEMINI_API_KEY` を設定する。外部呼び出しは発生していない |
+| `E500` | 500 | **想定外の例外**（Gemini への fetch が12秒で中断された場合を含む） | Internal server error. | ログに例外が出る。関数の上限は `maxDuration = 30`秒で、12秒×最大2回＋再送待ち1.5秒＝25.5秒に収まる設計 |
+| `E502` | 502 | Gemini が失敗を返した（503 は1.5秒待って1回だけ再送・**429 は再送しない**）／応答が JSON として読めない | Prompt generation failed. Please try again. ／ Failed to parse Gemini response. | 時間をおいて再試行。続くなら Google 側の枠・キーの状態を確認 |
 
 補足：`GET /api/media-prompt` は Next.js の既定で 405 を返す（アプリのコードは通らないので `code` は付かない）。
