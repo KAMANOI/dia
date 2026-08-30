@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <PolicyLayout title="プライバシーポリシー" updatedAt="2025年3月">
+    <PolicyLayout title="プライバシーポリシー" updatedAt="2026年8月">
       <p>
         DIA（以下「本サービス」）は、日本語からAI用プロンプトを生成するWebツールです。
         本ポリシーでは、本サービスにおける情報の取り扱いについて説明します。
@@ -16,8 +16,10 @@ export default function PrivacyPage() {
 
       <h2>収集する情報</h2>
       <p>
-        本サービスは、ユーザーが入力したテキストを外部サーバーへ送信・収集しません。
-        入力内容はブラウザ内のみで処理されます。
+        トップページの文章プロンプト生成は、入力したテキストをブラウザ内のみで処理し、外部サーバーへ送信しません。
+        画像プロンプト生成（/image）・動画プロンプト生成（/video）は、入力内容を本サービスのサーバー経由で
+        Google Gemini API へ送信し、生成結果を受け取ります。本サービスは入力内容・生成結果を保存しません。
+        Google 側での取り扱いは Google の規約に従います。
       </p>
 
       <h2>ローカルストレージの利用</h2>
@@ -30,8 +32,10 @@ export default function PrivacyPage() {
       <h2>外部AIサービスへの送信</h2>
       <p>
         本サービスが生成するのはコピペ用のプロンプトテキストのみです。
-        ユーザーの入力内容はChatGPT・Claude・Geminiなどの外部AIサービスへ自動送信されません。
-        プロンプトをAIへ送信する操作はユーザー自身が行います。
+        生成したプロンプトをChatGPT・Claudeなどへ送信する操作は、ユーザー自身が行います。
+        ただし画像・動画プロンプト生成（/image・/video）については、プロンプトを作るために
+        入力内容が本サービスのサーバー経由で Google Gemini API へ送信されます。
+        本サービスは入力内容・生成結果を保存しませんが、Google 側での取り扱いは Google の規約に従います。
       </p>
 
       <h2>広告について</h2>

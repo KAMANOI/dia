@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <PolicyLayout title="利用規約" updatedAt="2025年3月">
+    <PolicyLayout title="利用規約" updatedAt="2026年8月">
       <p>
         本規約は、DIA（以下「本サービス」）の利用条件を定めるものです。
         本サービスをご利用の際は、本規約に同意したものとみなします。
@@ -18,7 +18,9 @@ export default function TermsPage() {
       <p>
         本サービスは、日本語で入力した内容をもとに、ChatGPT・Claude・Geminiなどの
         AIにそのまま使えるプロンプトを生成するWebツールです。
-        プロンプトの生成はすべてブラウザ内で行われ、外部サーバーへの送信は行いません。
+        文章プロンプトの生成はブラウザ内で行われ、外部サーバーへの送信は行いません。
+        画像・動画プロンプトの生成（/image・/video）は、入力内容を本サービスのサーバー経由で
+        Google Gemini API へ送信し、生成結果を返します。本サービスは入力・出力を保存しません。
       </p>
 
       <h2>禁止事項</h2>

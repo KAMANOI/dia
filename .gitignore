@@ -27,3 +27,10 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# TypeScript build info（npx tsc --noEmit の副産物）
+tsconfig.tsbuildinfo
+
+# 公開リポジトリのため、弱点を列挙するセキュリティ設計書と決定記録は追跡しない（手元のみ・2026-08-31）
+docs/SECURITY_DESIGN.md
+.claude/decisions.md

@@ -3,6 +3,58 @@ import { NextRequest, NextResponse } from 'next/server';
 const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
 
+// ── ガード（エラーコードは docs/error-codes.md）────────────────────────────
+
+/** 自サイトのオリジン。layout.tsx の canonical と同じ値を既定にする。 */
+const ALLOWED_ORIGIN =
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://dia-wheat.vercel.app';
+
+const RATE_LIMIT = 20;
+const RATE_WINDOW_MS = 60 * 60 * 1000;
+
+/**
+ * ponytail: インスタンス内メモリのみのレート制限。
+ * サーバレスではインスタンスごとに別カウント・コールドスタートで消えるため、
+ * 実効上限は「1インスタンスあたり20回/時」であって全体の上限ではない。
+ * 厳密な全体上限が要るなら外部ストア（Upstash 等）か Google 側のキー上限で担保する。
+ */
+const hits = new Map<string, { count: number; resetAt: number }>();
+
+function clientIp(req: NextRequest): string {
+  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+}
+
+function overRateLimit(ip: string): boolean {
+  const now = Date.now();
+  if (hits.size > 1000) {
+    for (const [k, v] of hits) if (v.resetAt <= now) hits.delete(k);
+  }
+  const cur = hits.get(ip);
+  if (!cur || cur.resetAt <= now) {
+    hits.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return false;
+  }
+  cur.count += 1;
+  return cur.count > RATE_LIMIT;
+}
+
+/**
+ * 同一オリジンからの呼び出しかを Origin / Referer で確認する。
+ * 注記：これは**認証ではない**。ヘッダは呼び出し側が自由に付けられるため、
+ * ブラウザ以外からの直接呼び出しを「面倒にする」だけの措置。
+ * 実効的な上限は Google 側のキー上限とレート制限が担う。
+ */
+function isSameOrigin(req: NextRequest): boolean {
+  const src = req.headers.get('origin') ?? req.headers.get('referer');
+  if (!src) return false;
+  if (src === ALLOWED_ORIGIN || src.startsWith(ALLOWED_ORIGIN + '/')) return true;
+  // next dev（本番以外）では localhost からの呼び出しを許可する
+  return (
+    process.env.NODE_ENV !== 'production' &&
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/.test(src)
+  );
+}
+
 // ── System prompts ──────────────────────────────────────────────────────────
 
 function buildImageSystemPrompt(): string {
@@ -110,10 +162,32 @@ Notes:
 // ── Request handler ─────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  // 既定オフの安全装置（フェイルクローズ）。運用で明示的に有効化する。
+  if (process.env.DIA_MEDIA_PROMPT_ENABLED !== '1') {
+    return NextResponse.json(
+      { error: '画像・動画プロンプト生成は現在停止中です。', code: 'E503' },
+      { status: 503 }
+    );
+  }
+
+  if (!isSameOrigin(req)) {
+    return NextResponse.json(
+      { error: 'このAPIは本サイトからのみ利用できます。', code: 'E403' },
+      { status: 403 }
+    );
+  }
+
+  if (overRateLimit(clientIp(req))) {
+    return NextResponse.json(
+      { error: '利用回数の上限に達しました。しばらく待ってからお試しください。', code: 'E429' },
+      { status: 429 }
+    );
+  }
+
   const apiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
-      { error: 'Gemini API key is not configured (set GEMINI_API_KEY or GOOGLE_API_KEY).' },
+      { error: 'Gemini API key is not configured (set GEMINI_API_KEY or GOOGLE_API_KEY).', code: 'E500' },
       { status: 500 }
     );
   }
@@ -122,7 +196,7 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid JSON body.', code: 'E400' }, { status: 400 });
   }
 
   const { type, tool, params } = body as {
@@ -132,7 +206,7 @@ export async function POST(req: NextRequest) {
   };
 
   if (!type || !tool || !params) {
-    return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
+    return NextResponse.json({ error: 'Missing required fields.', code: 'E400' }, { status: 400 });
   }
 
   // Build user message
@@ -155,25 +229,31 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    let geminiRes: Response | null = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      if (attempt > 0) await new Promise(r => setTimeout(r, attempt * 1500));
-      geminiRes = await fetch(GEMINI_URL, {
+    const callGemini = () =>
+      fetch(GEMINI_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-goog-api-key': apiKey,
         },
         body: requestBody,
+        // 応答が返らない時に関数の最大実行時間まで詰まらないよう20秒で打ち切る
+        signal: AbortSignal.timeout(20_000),
       });
-      if (geminiRes.ok || ![503, 429].includes(geminiRes.status)) break;
+
+    // 503（一時的な不調）のみ1回だけ再送する。
+    // 429（レート超過）は再送しない＝枠が枯れかけている時に呼び出しを増幅させないため。
+    let geminiRes = await callGemini();
+    if (geminiRes.status === 503) {
+      await new Promise(r => setTimeout(r, 1500));
+      geminiRes = await callGemini();
     }
 
-    if (!geminiRes!.ok) {
-      const errText = await geminiRes!.text();
-      console.error('Gemini API error:', geminiRes!.status, errText);
+    if (!geminiRes.ok) {
+      const errText = await geminiRes.text();
+      console.error('Gemini API error:', geminiRes.status, errText);
       return NextResponse.json(
-        { error: 'Prompt generation failed. Please try again.' },
+        { error: 'Prompt generation failed. Please try again.', code: 'E502' },
         { status: 502 }
       );
     }
@@ -190,7 +270,7 @@ export async function POST(req: NextRequest) {
       const match = rawText.match(/\{[\s\S]*\}/);
       if (!match) {
         return NextResponse.json(
-          { error: 'Failed to parse Gemini response.' },
+          { error: 'Failed to parse Gemini response.', code: 'E502' },
           { status: 502 }
         );
       }
@@ -201,7 +281,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error('Media prompt generation error:', err);
     return NextResponse.json(
-      { error: 'Internal server error.' },
+      { error: 'Internal server error.', code: 'E500' },
       { status: 500 }
     );
   }
