@@ -1,5 +1,7 @@
 # DIA — エラーコード一覧
 
+> **2026-09-01 撤去（稟議 #5-1・HIROKI承認）**：`/image`・`/video`・`POST /api/media-prompt` は本日撤去した（4か月無変更・利用実態不明・Googleへの課金経路を断つため）。以下は撤去前の記録。
+
 - 作成：2026-08-30。正本：このファイル。API の応答を変えたら同時に更新する
 - 対象：サーバ側の入口は `POST /api/media-prompt` の1本だけ（`src/app/api/media-prompt/route.ts`）。この API が返すエラーは **必ず `{ error, code }` の形**で返す
 - 画面側は `data.error` をそのまま表示する（`src/app/image/page.tsx`・`src/app/video/page.tsx`）。利用者から不具合報告を受けたら `code` を聞けば原因が特定できる
