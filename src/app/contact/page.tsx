@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function ContactPage() {
   return (
-    <PolicyLayout title="お問い合わせ" updatedAt="2026年8月">
+    <PolicyLayout title="お問い合わせ" updatedAt="2026年9月">
       <p>
         DIA に関するご意見・ご要望・不具合報告は、以下の方法でご連絡ください。
       </p>
@@ -37,9 +37,7 @@ export default function ContactPage() {
       <p>
         <strong>入力した内容はAIに送られますか？</strong>
         <br />
-        文章プロンプト生成はブラウザ内で完結し、外部サーバーへ送信しません。
-        画像・動画プロンプト生成（/image・/video）のみ、入力内容を本サービスのサーバー経由で
-        Google Gemini API へ送信します（本サービスは入力・出力を保存しません）。
+        いいえ。プロンプト生成はすべてブラウザ内で完結し、外部サーバーへ送信しません。
       </p>
       <p>
         <strong>生成履歴はどこに保存されますか？</strong>
