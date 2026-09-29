@@ -50,7 +50,7 @@ export function initialMediaInput(kind: MediaKind): MediaInput {
 }
 const join = (parts: string[], separator = ', ') => parts.map(safeTrim).filter(Boolean).join(separator);
 // Strip trailing sentence punctuation from free text so templates don't produce "猫。."
-const clean = (s: string) => safeTrim(s).replace(/[\s.。．!！?？]+$/u, '');
+export const clean = (s: string) => safeTrim(s).replace(/[\s.。．!！?？]+$/u, '');
 export const hasSeparateNegative = (tool: MediaTool) => tool === 'novelai' || tool === 'sd';
 
 // Pure templates: identical input always produces identical output; free text is preserved.
@@ -76,7 +76,7 @@ export function buildMediaPrompts(input: MediaInput): MediaVariant[] {
     const tags = join([p.subject, p.style, p.mood, p.lighting, p.composition, p.details]);
     const extraTags = ['', 'expressive visual storytelling, layered depth', 'precise textures, coherent perspective, carefully resolved details'][index];
     if (p.tool === 'midjourney' || p.tool === 'niji') {
-      const flags = `--ar ${p.ratio} ${p.tool === 'niji' ? '--niji 6' : `--v ${p.version}`}${p.negative ? ` --no ${p.negative}` : ''}`;
+      const flags = join([`--ar ${p.ratio}`, p.tool === 'niji' ? '--niji 6' : p.version ? `--v ${p.version}` : '', p.negative ? `--no ${p.negative}` : ''], ' ');
       return { name, prompt: `${join([tags, extraTags])} ${flags}`, negative: '', settings: '' };
     }
     if (hasSeparateNegative(p.tool)) {

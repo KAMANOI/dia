@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Dependency-free, conservative source guard. Run from any working directory.
 // This is a static regression check, not a proof against deliberately obfuscated code.
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, lstatSync, readdirSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,10 +29,37 @@ if (existsSync(sourceRoot)) walk(sourceRoot);
 check('Source tree present and readable without symlinks', [...(!files.length ? ['src missing or empty'] : []), ...links]);
 check('No src/app/api directory or routes', existsSync(join(root, 'src/app/api')) ? ['src/app/api'] : []);
 
+const rootLinks = [];
+for (const name of ['next.config', 'middleware', 'proxy', 'instrumentation', 'instrumentation-client']) {
+  for (const extension of ['ts', 'tsx', 'mts', 'js', 'jsx', 'mjs', 'cjs']) {
+    const path = `${name}.${extension}`;
+    const absolute = join(root, path);
+    const stat = lstatSync(absolute, { throwIfNoEntry: false });
+    if (stat?.isSymbolicLink()) rootLinks.push(path);
+    else if (stat?.isFile()) files.push({ path, text: readFileSync(absolute, 'utf8') });
+  }
+}
+check('Root config and entry points readable without symlinks', rootLinks);
+
 // Decode common literal escapes so bracket-property access is checked too.
 const decoded = text => text.replace(/\\u\{([\da-f]{1,6})\}|\\u([\da-f]{4})|\\x([\da-f]{2})/gi,
   (whole, a, b, c) => { const n = Number.parseInt(a || b || c, 16); return n <= 0x10ffff ? String.fromCodePoint(n) : whole; });
 const matching = expression => files.filter(file => expression.test(decoded(file.text))).map(file => file.path);
+// Match route destinations, not URLs in header values such as the CSP.
+check('No external rewrites or redirects in Next config', files.filter(file => {
+  if (!/^next\.config\.(?:ts|mts|js|mjs|cjs)$/.test(file.path)) return false;
+  const text = decoded(file.text);
+  // Fail closed: every destination must be a complete quoted internal path (env templates,
+  // variables, shorthand, concatenation fail); routes with no inline destination (imported) fail too.
+  return /\b(?:rewrites|redirects)\b/.test(text) && (!/\bdestination\b/.test(text)
+    || /\bdestination\b(?!['"`]?\s*:\s*(['"])\/(?![\/\\])[^'"`$]*\1\s*[,}\]\n])/.test(text));
+}).map(file => file.path));
+// Middleware/proxy/instrumentation must not redirect, rewrite or fetch to any absolute URL.
+check('No external URLs in middleware, proxy or instrumentation', files.filter(file => (
+  /^(?:src\/)?(?:middleware|proxy|instrumentation(?:-client)?)\.\w+$/.test(file.path) && /https?:\/\/|['"`]\/[\/\\]|process\.env/i.test(decoded(file.text))
+)).map(file => file.path));
+check('No rewrites or redirects in vercel.json', existsSync(join(root, 'vercel.json'))
+  && /\b(?:rewrites|redirects|routes)\b/.test(readFileSync(join(root, 'vercel.json'), 'utf8')) ? ['vercel.json'] : []);
 check('No server actions', matching(/use\s+server/i));
 
 // Pin the entire reviewed OG file: never exempt every request in a named file.

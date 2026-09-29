@@ -4,11 +4,12 @@ import { useState, useCallback } from 'react';
 
 interface CopyButtonProps {
   text: string;
+  label?: string;
   className?: string;
   size?: 'sm' | 'md';
 }
 
-export function CopyButton({ text, className = '', size = 'sm' }: CopyButtonProps) {
+export function CopyButton({ text, label, className = '', size = 'sm' }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
@@ -32,7 +33,9 @@ export function CopyButton({ text, className = '', size = 'sm' }: CopyButtonProp
   const sizeClass = size === 'sm' ? 'h-7 px-2.5 text-xs gap-1.5' : 'h-9 px-4 text-sm gap-2';
 
   return (
+    <>
     <button
+      aria-label={label}
       onClick={handleCopy}
       className={[
         'inline-flex items-center justify-center font-medium rounded-btn select-none',
@@ -58,6 +61,8 @@ export function CopyButton({ text, className = '', size = 'sm' }: CopyButtonProp
         </>
       )}
     </button>
+    <span role="status" className="sr-only">{copied ? 'コピーしました' : ''}</span>
+    </>
   );
 }
 
