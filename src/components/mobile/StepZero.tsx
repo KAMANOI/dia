@@ -99,6 +99,15 @@ export function StepZero({ history, onStart, onOpenHistory }: StepZeroProps) {
           </div>
         </section>
 
+        <section className="mb-8 space-y-3" aria-label="画像・動画プロンプト">
+          <h2 className="text-sm font-semibold text-ink">画像・動画のプロンプトを作る</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <Link href="/image" className="rounded-card border border-line bg-white p-4 text-sm font-medium text-primary hover:bg-primary-subtle">画像プロンプト →</Link>
+            <Link href="/video" className="rounded-card border border-line bg-white p-4 text-sm font-medium text-primary hover:bg-primary-subtle">動画プロンプト →</Link>
+          </div>
+          <p className="text-xs text-ink-muted">ブラウザ内で作成。入力内容は送信しません。</p>
+        </section>
+
         {/* 使い方 */}
         <section className="mb-9">
           <h2 className="text-[11px] font-semibold text-ink-muted tracking-widest uppercase mb-3">
