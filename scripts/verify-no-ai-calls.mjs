@@ -54,6 +54,11 @@ check('No external rewrites or redirects in Next config', files.filter(file => {
   return /\b(?:rewrites|redirects)\b/.test(text) && (!/\bdestination\b/.test(text)
     || /\bdestination\b(?!['"`]?\s*:\s*(['"])\/(?![\/\\])[^'"`$]*\1\s*[,}\]\n])/.test(text));
 }).map(file => file.path));
+// Keys that make the Next server fetch from or serve via other hosts (image proxy, asset CDN) are not allowed at all.
+check('No remote image or asset hosts in Next config', files.filter(file => (
+  /^next\.config\.(?:ts|mts|js|mjs|cjs)$/.test(file.path)
+  && /\b(?:assetPrefix|remotePatterns|domains|loaderFile|loader)\b/.test(decoded(file.text))
+)).map(file => file.path));
 // Middleware/proxy/instrumentation must not redirect, rewrite or fetch to any absolute URL.
 check('No external URLs in middleware, proxy or instrumentation', files.filter(file => (
   /^(?:src\/)?(?:middleware|proxy|instrumentation(?:-client)?)\.\w+$/.test(file.path) && /https?:\/\/|['"`]\/[\/\\]|process\.env/i.test(decoded(file.text))
