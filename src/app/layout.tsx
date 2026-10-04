@@ -21,7 +21,7 @@ const notoSansJP = Noto_Sans_JP({
 /* ============================================================
    メタデータ
    ============================================================ */
-const SITE_URL = 'https://dia-wheat.vercel.app';
+const SITE_URL = 'https://dia.hdr-ai.com';
 const SITE_TITLE = 'DIA — 日本語からAIプロンプトを生成';
 const SITE_DESCRIPTION =
   '日本語で書くだけでAIに最適なプロンプトを生成。ChatGPT・Claude対応のプロンプトジェネレーター。';
