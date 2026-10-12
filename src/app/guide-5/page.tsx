@@ -4,6 +4,8 @@ import { GuideLayout } from '@/components/shared/GuideLayout';
 export const metadata: Metadata = {
   title: 'AI初心者が最初につまずきやすいポイントと対処法 | DIA',
   description: 'AIを使い始めたばかりの人がよくつまずく場面と、その対処法をわかりやすく解説します。ChatGPT・Claude・Geminiなどで使えるヒントを紹介。',
+  alternates: { canonical: '/guide-5' },
+  openGraph: { type: 'website', images: ['/opengraph-image'], url: '/guide-5', title: 'AI初心者が最初につまずきやすいポイントと対処法 | DIA', description: 'AIを使い始めたばかりの人がよくつまずく場面と、その対処法をわかりやすく解説します。ChatGPT・Claude・Geminiなどで使えるヒントを紹介。' },
 };
 
 export default function Guide5Page() {

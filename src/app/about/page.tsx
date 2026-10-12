@@ -5,6 +5,8 @@ import { Footer } from '@/components/shared/Footer';
 export const metadata: Metadata = {
   title: 'DIAについて | DIA',
   description: 'DIA（ダイア）は、日本語からAIプロンプトを生成するWebツールです。サービスの概要と運営者情報をご確認いただけます。',
+  alternates: { canonical: '/about' },
+  openGraph: { type: 'website', images: ['/opengraph-image'], url: '/about', title: 'DIAについて | DIA', description: 'DIA（ダイア）は、日本語からAIプロンプトを生成するWebツールです。サービスの概要と運営者情報をご確認いただけます。' },
 };
 
 export default function AboutPage() {

@@ -3,7 +3,9 @@ import { PolicyLayout } from '@/components/shared/PolicyLayout';
 
 export const metadata: Metadata = {
   title: '利用規約 | DIA',
-  description: 'DIA の利用規約です。',
+  description: 'DIA（ダイア）の利用規約です。本サービスの利用条件、禁止事項、免責事項、規約の変更について定めています。',
+  alternates: { canonical: '/terms' },
+  openGraph: { type: 'website', images: ['/opengraph-image'], url: '/terms', title: '利用規約 | DIA', description: 'DIA（ダイア）の利用規約です。本サービスの利用条件、禁止事項、免責事項、規約の変更について定めています。' },
 };
 
 export default function TermsPage() {

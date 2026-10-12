@@ -3,7 +3,9 @@ import { PolicyLayout } from '@/components/shared/PolicyLayout';
 
 export const metadata: Metadata = {
   title: 'お問い合わせ | DIA',
-  description: 'DIA へのお問い合わせ方法です。',
+  description: 'DIA（ダイア）へのお問い合わせ方法です。ご意見・ご要望・不具合のご報告の窓口をご案内します。',
+  alternates: { canonical: '/contact' },
+  openGraph: { type: 'website', images: ['/opengraph-image'], url: '/contact', title: 'お問い合わせ | DIA', description: 'DIA（ダイア）へのお問い合わせ方法です。ご意見・ご要望・不具合のご報告の窓口をご案内します。' },
 };
 
 export default function ContactPage() {

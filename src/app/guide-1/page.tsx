@@ -4,6 +4,8 @@ import { GuideLayout } from '@/components/shared/GuideLayout';
 export const metadata: Metadata = {
   title: 'AIプロンプトとは何か。はじめての人向け基礎ガイド | DIA',
   description: 'AIプロンプトの基本を初心者向けに解説。良いプロンプトの条件や、文章・画像生成での活用方法を具体例つきで紹介します。',
+  alternates: { canonical: '/guide-1' },
+  openGraph: { type: 'website', images: ['/opengraph-image'], url: '/guide-1', title: 'AIプロンプトとは何か。はじめての人向け基礎ガイド | DIA', description: 'AIプロンプトの基本を初心者向けに解説。良いプロンプトの条件や、文章・画像生成での活用方法を具体例つきで紹介します。' },
 };
 
 export default function Guide1Page() {

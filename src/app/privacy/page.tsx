@@ -3,7 +3,9 @@ import { PolicyLayout } from '@/components/shared/PolicyLayout';
 
 export const metadata: Metadata = {
   title: 'プライバシーポリシー | DIA',
-  description: 'DIA のプライバシーポリシーです。',
+  description: 'DIA（ダイア）のプライバシーポリシーです。入力内容の取り扱い、保存される情報、ブラウザ内の履歴の扱いを説明します。',
+  alternates: { canonical: '/privacy' },
+  openGraph: { type: 'website', images: ['/opengraph-image'], url: '/privacy', title: 'プライバシーポリシー | DIA', description: 'DIA（ダイア）のプライバシーポリシーです。入力内容の取り扱い、保存される情報、ブラウザ内の履歴の扱いを説明します。' },
 };
 
 export default function PrivacyPage() {

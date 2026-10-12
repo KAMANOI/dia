@@ -1,0 +1,30 @@
+# DIA
+
+> DIA（ダイア）は、日本語で書いた情報から、ChatGPT・Claude・Gemini・Midjourney などの生成AIにそのまま渡せるプロンプト（標準・簡潔・高精度の3案）を作る Web ツールです。プロンプトの生成はすべてブラウザ内で完結し、入力した内容は外部サーバーへ送信されません。アカウント登録も決済も不要で、完全無料で使えます。運営者は Hiroki Kamanoi（釜野井 弘規）で、HDR（Human Driven Reality）の公開製品のひとつです。
+
+DIA turns Japanese notes into ready-to-paste prompts (three variants: standard, concise, high-precision) for ChatGPT, Claude, Gemini, Midjourney and other generative AI. Everything runs in the browser: what you type is not sent to any server. No account, no payment, free.
+
+## Strengths
+
+- 入力した内容をサーバーへ送らない: 生成はブラウザ内で完結する
+- アカウント・決済・データベースなし: 開いてすぐ使え、完全無料
+- 履歴は自分のブラウザ（ローカルストレージ）にだけ残り、アプリ内の「全削除」でいつでも消せる
+- 「何を入力すればいいかわからない」人向けに、日本語の入力だけで用途別（文章作成・SNS投稿・ビジネス文書など）のプロンプトを出す
+- ツール画面には広告を表示しない（広告を表示するのはガイド・記事ページのみ）
+
+## Pages
+
+- [Tool (home)](https://dia.hdr-ai.com/): 日本語からプロンプトを生成する
+- [How to use](https://dia.hdr-ai.com/how-to): 基本の使い方と用途別の入力例
+- [About](https://dia.hdr-ai.com/about): サービス概要と運営者情報
+- [Guide 1: AIプロンプトとは何か](https://dia.hdr-ai.com/guide-1): はじめての人向けの基礎ガイド
+- [Guide 2: AIの出力が安定しない理由](https://dia.hdr-ai.com/guide-2): プロンプト改善の基本
+- [Guide 3: 文章生成AIのプロンプト設計](https://dia.hdr-ai.com/guide-3)
+- [Guide 4: 画像生成AIで使えるプロンプトの考え方](https://dia.hdr-ai.com/guide-4)
+- [Guide 5: AI初心者がつまずきやすいポイントと対処法](https://dia.hdr-ai.com/guide-5)
+
+## Legal and contact
+
+- [Contact](https://dia.hdr-ai.com/contact)
+- [Privacy policy](https://dia.hdr-ai.com/privacy)
+- [Terms of use](https://dia.hdr-ai.com/terms)

@@ -4,6 +4,8 @@ import { GuideLayout } from '@/components/shared/GuideLayout';
 export const metadata: Metadata = {
   title: '画像生成AIで使えるプロンプトの考え方 | DIA',
   description: '画像生成AIで思い通りの画像を作るためのプロンプトの組み立て方を解説。Midjourney・Stable Diffusion・DALL-Eなど主要ツール別のコツも紹介します。',
+  alternates: { canonical: '/guide-4' },
+  openGraph: { type: 'website', images: ['/opengraph-image'], url: '/guide-4', title: '画像生成AIで使えるプロンプトの考え方 | DIA', description: '画像生成AIで思い通りの画像を作るためのプロンプトの組み立て方を解説。Midjourney・Stable Diffusion・DALL-Eなど主要ツール別のコツも紹介します。' },
 };
 
 export default function Guide4Page() {
