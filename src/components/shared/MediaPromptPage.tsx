@@ -38,6 +38,7 @@ export function MediaPromptPage({ kind }: { kind: MediaKind }) {
         <Link href="/" className="mr-auto text-xl font-bold">DIA</Link>
         <Link href="/image" aria-current={!isVideo ? 'page' : undefined} className={!isVideo ? 'font-bold text-primary' : ''}>画像</Link>
         <Link href="/video" aria-current={isVideo ? 'page' : undefined} className={isVideo ? 'font-bold text-primary' : ''}>動画</Link>
+        <Link href="/video/from-image">画像→動画</Link>
       </nav>
     </header>
     <main className="mx-auto max-w-5xl space-y-7 px-5 py-10">

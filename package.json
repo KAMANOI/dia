@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "verify:no-ai": "node scripts/verify-no-ai-calls.mjs"
+    "verify:no-ai": "node scripts/verify-no-ai-calls.mjs",
+    "check:i2v": "node --no-warnings scripts/check-image-to-video.mjs"
   },
   "dependencies": {
     "next": "^16.3.3",
