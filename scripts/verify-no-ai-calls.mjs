@@ -81,5 +81,6 @@ check('No AI hosts or SDK strings', matching(/generativelanguage\.googleapis\.co
 check('Image and video pages restored', ['image', 'video'].filter(kind => !existsSync(join(root, `src/app/${kind}/page.tsx`))).map(kind => `src/app/${kind}/page.tsx`));
 check('No adult options in media pages, shared UI or builder', files.filter(file => (
   /^src\/app\/(image|video)\//.test(file.path) || file.path === 'src/components/shared/MediaPromptPage.tsx' || file.path === 'src/utils/mediaPromptBuilder.ts'
+  || file.path === 'src/components/shared/ImageToVideoPage.tsx' || file.path === 'src/utils/imageToVideoBuilder.ts'
 ) && /nsfw|sexy|nude|erotic|sensual|hentai|\br-?18\b|セクシー|官能|性的|アダルト|エロ|ヌード/i.test(decoded(file.text))).map(file => file.path));
 process.exitCode = failed ? 1 : 0;

@@ -29,6 +29,8 @@ assert.match(noImage, /各カットの生成の長さ: 15秒（Seedance 2\.0 が
 assert.match(noImage, /protagonist（主役）/);
 assert.match(noImage, /画像の情報は読み取っていません/);
 assert.match(buildImageToVideoInstruction({ ...base, model: 'veo-3.1', generateSec: 15 }), /生成の長さ: 8秒/); // out-of-range length falls back
+assert.match(buildImageToVideoInstruction({ ...base, model: 'runway-gen4.5', generateSec: 2 }), /それぞれ0\.5秒以上/); // short clips keep a usable middle
+assert.match(noImage, /cuts はちょうど3件/);
 
 const path = process.argv[2];
 if (path) {

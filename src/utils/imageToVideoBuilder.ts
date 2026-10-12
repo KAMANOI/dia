@@ -122,7 +122,7 @@ function readTiff(v: DataView, t: number, end: number) {
 export function buildImageToVideoInstruction(input: I2VInput): string {
   const model = modelById(input.model);
   const sec = model.durations.includes(input.generateSec as never) ? input.generateSec : defaultDuration(model.id);
-  const pad = sec >= 8 ? 1.5 : 1;
+  const pad = Math.min(sec >= 8 ? 1.5 : 1, sec / 4); // keep at least half the clip usable on 2–3 s models
   const f = input.facts;
   const ratio = input.ratio !== 'auto' ? input.ratio : f ? nearestRatio(f.width, f.height) : '添付画像に近い比率';
   const allowed = model.durations.length > 4 ? `${model.durations[0]}〜${model.durations.at(-1)}秒` : `${model.durations.join('・')}秒`;
@@ -140,8 +140,8 @@ export function buildImageToVideoInstruction(input: I2VInput): string {
 - 各カットの生成の長さ: ${sec}秒（${model.label} が1回で生成できる長さは ${allowed}）
 - 編集で使う区間は生成の長さより短くし、前後に余白を残してください（目安: 頭と尻にそれぞれ${pad}秒以上）。動き出しと止まり際は不安定になりやすいため使いません。
 - カット数: ${input.cuts}
-- 画面比率: ${ratio}
-- 1カット目は添付画像を開始フレームにします（画像から動画を作る使い方）。2カット目以降は、前のカットの最後のフレームから始めるか、文章だけで作るかを、カットごとに選んで書いてください。
+- 画面比率: ${ratio}（${model.label} が対応していない比率の場合は、最も近い対応比率にしてください）
+- 1カット目は添付画像を開始フレームにします（画像から動画を作る使い方）。2カット目以降は、前のカットの最後のフレーム（編集アプリで静止画として書き出して使う）から始めるか、文章だけで作るかを、カットごとに選んで書いてください。迷う場合は文章だけで作る方にしてください。
 
 ## ブラウザで読み取った画像の情報（参考値）
 ${facts}
@@ -160,7 +160,7 @@ ${intent}
 - 色: 主要な色と、それぞれの役割（主役/背景/アクセント）
 
 ### 2. レイヤーとシーンの構造（JSON）
-次の形のJSONを、コードブロック1つで出してください。
+次の形のJSONを、コードブロック1つで出してください。scenes は1つ、その中の cuts はちょうど${input.cuts}件にします。
 - layers の type は次から選びます: ${KONTE_LAYERS.map(([k, ja]) => `${k}（${ja}）`).join('、')}。主役は protagonist、それ以外の人物は character。画像に無いレイヤーは出しません。
 - 画面内の文字は texts に入れます（kind: ${KONTE_TEXT_KINDS.map(([k, ja]) => `${k}=${ja}`).join('、')}）。読めない文字は content を「判読不可」にします。
 - bbox は [左, 上, 幅, 高さ] を画面に対する割合（0〜1）で書きます。
@@ -181,8 +181,10 @@ ${IMAGE_READING_JSON}
 - ${model.label} に貼るプロンプト（英語・コードブロック・JSONの prompt と同じ文）
   書き方: ${model.hint}
 
+出力が途中で切れた場合は、こちらが「続き」と送ったら、切れたところから続けてください。
+
 ### 4. 編集用のカット表
-表で出してください: カット順｜使う区間（生成動画の中の秒）｜使う長さ｜次のカットへのつなぎ方（カット／ディゾルブ／動きでつなぐ 等）｜つなぎの狙い
+表で出してください: カット順｜使う区間（生成動画の中の秒）｜使う長さ｜次のカットへのつなぎ方（そのまま切り替える／ディゾルブ＝重ねながら切り替える／動きでつなぐ 等）｜つなぎの狙い
 最後に、仕上がりの合計の長さを書いてください。
 
 ## 守ること
