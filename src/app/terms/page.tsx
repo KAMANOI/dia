@@ -5,7 +5,8 @@ export const metadata: Metadata = {
   title: '利用規約 | DIA',
   description: 'DIA（ダイア）の利用規約です。本サービスの利用条件、禁止事項、免責事項、規約の変更について定めています。',
   alternates: { canonical: '/terms' },
-  openGraph: { type: 'website', images: ['/opengraph-image'], url: '/terms', title: '利用規約 | DIA', description: 'DIA（ダイア）の利用規約です。本サービスの利用条件、禁止事項、免責事項、規約の変更について定めています。' },
+  openGraph: { type: 'website', images: [{ url: '/opengraph-image', width: 1200, height: 630 }], url: '/terms', title: '利用規約 | DIA', description: 'DIA（ダイア）の利用規約です。本サービスの利用条件、禁止事項、免責事項、規約の変更について定めています。' },
+  twitter: { card: 'summary_large_image', title: '利用規約 | DIA', description: 'DIA（ダイア）の利用規約です。本サービスの利用条件、禁止事項、免責事項、規約の変更について定めています。', images: ['/opengraph-image'] },
 };
 
 export default function TermsPage() {

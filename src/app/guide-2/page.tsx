@@ -5,7 +5,8 @@ export const metadata: Metadata = {
   title: 'AIの出力が安定しない理由。プロンプト改善の基本 | DIA',
   description: 'AIの出力がぶれる原因と、プロンプトを改善するための具体的な方法を具体例つきで解説します。',
   alternates: { canonical: '/guide-2' },
-  openGraph: { type: 'website', images: ['/opengraph-image'], url: '/guide-2', title: 'AIの出力が安定しない理由。プロンプト改善の基本 | DIA', description: 'AIの出力がぶれる原因と、プロンプトを改善するための具体的な方法を具体例つきで解説します。' },
+  openGraph: { type: 'website', images: [{ url: '/opengraph-image', width: 1200, height: 630 }], url: '/guide-2', title: 'AIの出力が安定しない理由。プロンプト改善の基本 | DIA', description: 'AIの出力がぶれる原因と、プロンプトを改善するための具体的な方法を具体例つきで解説します。' },
+  twitter: { card: 'summary_large_image', title: 'AIの出力が安定しない理由。プロンプト改善の基本 | DIA', description: 'AIの出力がぶれる原因と、プロンプトを改善するための具体的な方法を具体例つきで解説します。', images: ['/opengraph-image'] },
 };
 
 export default function Guide2Page() {

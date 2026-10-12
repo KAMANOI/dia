@@ -5,7 +5,8 @@ export const metadata: Metadata = {
   title: '画像生成AIで使えるプロンプトの考え方 | DIA',
   description: '画像生成AIで思い通りの画像を作るためのプロンプトの組み立て方を解説。Midjourney・Stable Diffusion・DALL-Eなど主要ツール別のコツも紹介します。',
   alternates: { canonical: '/guide-4' },
-  openGraph: { type: 'website', images: ['/opengraph-image'], url: '/guide-4', title: '画像生成AIで使えるプロンプトの考え方 | DIA', description: '画像生成AIで思い通りの画像を作るためのプロンプトの組み立て方を解説。Midjourney・Stable Diffusion・DALL-Eなど主要ツール別のコツも紹介します。' },
+  openGraph: { type: 'website', images: [{ url: '/opengraph-image', width: 1200, height: 630 }], url: '/guide-4', title: '画像生成AIで使えるプロンプトの考え方 | DIA', description: '画像生成AIで思い通りの画像を作るためのプロンプトの組み立て方を解説。Midjourney・Stable Diffusion・DALL-Eなど主要ツール別のコツも紹介します。' },
+  twitter: { card: 'summary_large_image', title: '画像生成AIで使えるプロンプトの考え方 | DIA', description: '画像生成AIで思い通りの画像を作るためのプロンプトの組み立て方を解説。Midjourney・Stable Diffusion・DALL-Eなど主要ツール別のコツも紹介します。', images: ['/opengraph-image'] },
 };
 
 export default function Guide4Page() {

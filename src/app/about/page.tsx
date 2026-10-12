@@ -6,7 +6,8 @@ export const metadata: Metadata = {
   title: 'DIAについて | DIA',
   description: 'DIA（ダイア）は、日本語からAIプロンプトを生成するWebツールです。サービスの概要と運営者情報をご確認いただけます。',
   alternates: { canonical: '/about' },
-  openGraph: { type: 'website', images: ['/opengraph-image'], url: '/about', title: 'DIAについて | DIA', description: 'DIA（ダイア）は、日本語からAIプロンプトを生成するWebツールです。サービスの概要と運営者情報をご確認いただけます。' },
+  openGraph: { type: 'website', images: [{ url: '/opengraph-image', width: 1200, height: 630 }], url: '/about', title: 'DIAについて | DIA', description: 'DIA（ダイア）は、日本語からAIプロンプトを生成するWebツールです。サービスの概要と運営者情報をご確認いただけます。' },
+  twitter: { card: 'summary_large_image', title: 'DIAについて | DIA', description: 'DIA（ダイア）は、日本語からAIプロンプトを生成するWebツールです。サービスの概要と運営者情報をご確認いただけます。', images: ['/opengraph-image'] },
 };
 
 export default function AboutPage() {

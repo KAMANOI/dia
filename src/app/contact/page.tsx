@@ -5,7 +5,8 @@ export const metadata: Metadata = {
   title: 'お問い合わせ | DIA',
   description: 'DIA（ダイア）へのお問い合わせ方法です。ご意見・ご要望・不具合のご報告の窓口をご案内します。',
   alternates: { canonical: '/contact' },
-  openGraph: { type: 'website', images: ['/opengraph-image'], url: '/contact', title: 'お問い合わせ | DIA', description: 'DIA（ダイア）へのお問い合わせ方法です。ご意見・ご要望・不具合のご報告の窓口をご案内します。' },
+  openGraph: { type: 'website', images: [{ url: '/opengraph-image', width: 1200, height: 630 }], url: '/contact', title: 'お問い合わせ | DIA', description: 'DIA（ダイア）へのお問い合わせ方法です。ご意見・ご要望・不具合のご報告の窓口をご案内します。' },
+  twitter: { card: 'summary_large_image', title: 'お問い合わせ | DIA', description: 'DIA（ダイア）へのお問い合わせ方法です。ご意見・ご要望・不具合のご報告の窓口をご案内します。', images: ['/opengraph-image'] },
 };
 
 export default function ContactPage() {

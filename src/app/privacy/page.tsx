@@ -5,7 +5,8 @@ export const metadata: Metadata = {
   title: 'プライバシーポリシー | DIA',
   description: 'DIA（ダイア）のプライバシーポリシーです。入力内容の取り扱い、保存される情報、ブラウザ内の履歴の扱いを説明します。',
   alternates: { canonical: '/privacy' },
-  openGraph: { type: 'website', images: ['/opengraph-image'], url: '/privacy', title: 'プライバシーポリシー | DIA', description: 'DIA（ダイア）のプライバシーポリシーです。入力内容の取り扱い、保存される情報、ブラウザ内の履歴の扱いを説明します。' },
+  openGraph: { type: 'website', images: [{ url: '/opengraph-image', width: 1200, height: 630 }], url: '/privacy', title: 'プライバシーポリシー | DIA', description: 'DIA（ダイア）のプライバシーポリシーです。入力内容の取り扱い、保存される情報、ブラウザ内の履歴の扱いを説明します。' },
+  twitter: { card: 'summary_large_image', title: 'プライバシーポリシー | DIA', description: 'DIA（ダイア）のプライバシーポリシーです。入力内容の取り扱い、保存される情報、ブラウザ内の履歴の扱いを説明します。', images: ['/opengraph-image'] },
 };
 
 export default function PrivacyPage() {
