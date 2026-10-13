@@ -4,6 +4,9 @@ import { GuideLayout } from '@/components/shared/GuideLayout';
 export const metadata: Metadata = {
   title: 'DIAの使い方 | DIA',
   description: 'DIAの基本的な使い方とコツを解説します。AIプロンプトを簡単に生成するための手順をステップごとに説明します。用途別の入力例も紹介。',
+  alternates: { canonical: '/how-to' },
+  openGraph: { type: 'website', images: [{ url: '/opengraph-image', width: 1200, height: 630 }], url: '/how-to', title: 'DIAの使い方 | DIA', description: 'DIAの基本的な使い方とコツを解説します。AIプロンプトを簡単に生成するための手順をステップごとに説明します。用途別の入力例も紹介。' },
+  twitter: { card: 'summary_large_image', title: 'DIAの使い方 | DIA', description: 'DIAの基本的な使い方とコツを解説します。AIプロンプトを簡単に生成するための手順をステップごとに説明します。用途別の入力例も紹介。', images: ['/opengraph-image'] },
 };
 
 export default function HowToPage() {

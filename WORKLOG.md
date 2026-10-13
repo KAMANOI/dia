@@ -14,6 +14,11 @@
 - Obsidian確認：同日00:2x のリサーチ部報告（`~/claude-bridge/outbox/hdr-domain/00_調査報告と計画書.md`）で「新ドメインを買うか」自体が代表判断待ちのまま未回答。本指示書の前提（購入済み・名称確定済み）は現状と一致しない。
 - 指示書の明記どおり「HDRドメインが未登録のため未着手」で停止。やること1〜6（ドメイン追加・転送・ads.txt・解析・動作確認・canonical等）は未実施。コード・設定への変更なし（git status確認済み・変更なし）。
 
+
+## 2026-10-13（非対話）AIO自社点検と修正（DIA・ブランチ fix/aio-20261013）
+- robots/sitemap/llms.txt・canonical/OGP/構造化データなどAI可読性だけを修正（機能・料金・LPの訴求は未変更）。詳細と前後比較は ai-virtual-corp/docs/marketing/aio-self-check-20261013/README.md
+- push・デプロイは未実施（代表の確認待ち）
+
 ## 2026-09-29 画像・動画プロンプト画面をAIを呼ばない形で復元（branch fix/dia-no-ai-restore）
 - 代表決裁（棚卸し B-7）：9/1 に撤去した `/image`・`/video` を、ブラウザ内の定型句だけで3案（標準・創作・詳細）を組み立てる形で戻す。AI・外部APIは呼ばない。性的な選択肢は戻さない
 - 追加：`src/utils/mediaPromptBuilder.ts`（純関数）・`src/components/shared/MediaPromptPage.tsx`・`src/app/{image,video}/page.tsx`・トップ（PC/スマホ）からの入口

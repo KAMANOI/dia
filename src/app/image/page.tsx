@@ -5,6 +5,8 @@ export const metadata: Metadata = {
   title: '画像生成AI向けプロンプト作成 | DIA',
   description: 'Midjourney・Stable Diffusion などの画像生成AI向けプロンプトを、選択肢からブラウザ内で3案作成します。入力内容は送信しません。',
   alternates: { canonical: '/image' },
+  openGraph: { type: 'website', images: [{ url: '/opengraph-image', width: 1200, height: 630 }], url: '/image', title: '画像生成AI向けプロンプト作成 | DIA', description: 'Midjourney・Stable Diffusion などの画像生成AI向けプロンプトを、選択肢からブラウザ内で3案作成します。入力内容は送信しません。' },
+  twitter: { card: 'summary_large_image', title: '画像生成AI向けプロンプト作成 | DIA', description: 'Midjourney・Stable Diffusion などの画像生成AI向けプロンプトを、選択肢からブラウザ内で3案作成します。入力内容は送信しません。', images: ['/opengraph-image'] },
 };
 
 export default function ImagePromptPage() {

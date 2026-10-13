@@ -4,6 +4,9 @@ import { GuideLayout } from '@/components/shared/GuideLayout';
 export const metadata: Metadata = {
   title: '文章生成AIを使うときに意識したいプロンプト設計 | DIA',
   description: '文章生成AIで安定した出力を得るためのプロンプト設計の考え方を、ブログ・SNS・メールなどの用途別に具体例を交えて解説します。',
+  alternates: { canonical: '/guide-3' },
+  openGraph: { type: 'website', images: [{ url: '/opengraph-image', width: 1200, height: 630 }], url: '/guide-3', title: '文章生成AIを使うときに意識したいプロンプト設計 | DIA', description: '文章生成AIで安定した出力を得るためのプロンプト設計の考え方を、ブログ・SNS・メールなどの用途別に具体例を交えて解説します。' },
+  twitter: { card: 'summary_large_image', title: '文章生成AIを使うときに意識したいプロンプト設計 | DIA', description: '文章生成AIで安定した出力を得るためのプロンプト設計の考え方を、ブログ・SNS・メールなどの用途別に具体例を交えて解説します。', images: ['/opengraph-image'] },
 };
 
 export default function Guide3Page() {
