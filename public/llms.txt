@@ -15,6 +15,8 @@ DIA turns Japanese notes into ready-to-paste prompts (three variants: standard, 
 ## Pages
 
 - [Tool (home)](https://dia.hdr-ai.com/): 日本語からプロンプトを生成する
+- [Image prompts](https://dia.hdr-ai.com/image): Midjourney・Stable Diffusion などの画像生成AI向けプロンプトを、選択肢からブラウザ内で3案作成する
+- [Video prompts](https://dia.hdr-ai.com/video): Kling・Runway・Luma などの動画生成AI向けプロンプトを、選択肢からブラウザ内で3案作成する
 - [How to use](https://dia.hdr-ai.com/how-to): 基本の使い方と用途別の入力例
 - [About](https://dia.hdr-ai.com/about): サービス概要と運営者情報
 - [Guide 1: AIプロンプトとは何か](https://dia.hdr-ai.com/guide-1): はじめての人向けの基礎ガイド
