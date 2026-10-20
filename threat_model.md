@@ -11,7 +11,7 @@
 - 利用者は一般の個人。本番は Vercel（`dia.hdr-ai.com`、旧 `dia-wheat.vercel.app` も残る。WL 2026-10-04）。
 
 ## 2. 信頼できない入力の入口
-サーバー側で入力を受ける入口は 0 本（HTTP は GET のみ。`src/app/api`・サーバーアクション・middleware・proxy・`vercel.json` の書き換えは無い。V:30,45-60,77 が毎回のビルド前に検査: `package.json` の `prebuild`）。
+サーバー側で入力を受ける入口は 0 本（HTTP は GET のみ。`src/app/api`・サーバーアクション・middleware・proxy・`vercel.json` の書き換えは無い。V:30,49,66,68 が毎回のビルド前に検査: `package.json` の `prebuild`）。
 ページ等の公開 GET 入口は 18 本中 18 本を下表に列挙（`src/app` の `page.tsx` 14 本＋`opengraph-image.tsx`・`robots.ts`・`sitemap.ts` の 3 本＋`public/llms.txt` 1 本）。いずれも URL のパス以外に入力を取らない。
 
 | 入口 | 誰が送れるか | 認証 | 備考 |
