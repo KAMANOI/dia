@@ -50,11 +50,10 @@ export const IMAGE_READING_JSON = `{
 // (never "also build the typical extras"), so the output with nothing ticked is unchanged.
 export const I2V_OPTIONS = [
   { id: 'noText', label: '画面内に文字を入れない', line: '生成する映像に、字幕・テロップ・看板などの文字を新しく加えない。' },
-  { id: 'noFace', label: '人物の顔を正面から映さない', line: '人物は後ろ姿・遠景・影・手元などで見せ、顔を正面から大きく映さない。' },
-  { id: 'loop', label: '最後が最初に戻るつなぎ方', line: '最後のカットの終わりは、最初のカットの始まりと同じ構図・光に戻し、続けて再生しても違和感が出ないようにする。' },
+  { id: 'noFace', label: '人物の顔を正面から映さない', line: '1カット目の開始フレーム（添付画像）を除き、人物は後ろ姿・遠景・影・手元などで見せ、顔を正面から大きく映さない。' },
+  { id: 'loop', label: '最後が最初に戻るつなぎ方', line: '最後のカットの終わりは、最初のカットの始まりと同じ構図・光に戻し、続けて再生しても違和感が出ないようにする（プロンプト本文には最初の構図を具体的な言葉で書き、「最初のカットと同じ」とは書かない）。' },
   { id: 'silent', label: '音の指示は書かない', line: '音・効果音・音楽・セリフの指示は書かない（映像だけを指示する）。' },
 ] as const;
-export type I2VOptionId = (typeof I2V_OPTIONS)[number]['id'];
 
 export interface ImageFacts {
   width: number;

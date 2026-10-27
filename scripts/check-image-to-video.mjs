@@ -41,6 +41,9 @@ assert.match(picked, /## 追加の条件（選ばれたものだけ）\n- 生成
 assert.match(picked, /最初のカットの始まりと同じ構図/);
 assert.doesNotMatch(picked, /顔を正面から/);
 assert.doesNotMatch(picked, /音・効果音/);
+assert.equal(buildImageToVideoInstruction({ ...base, options: ['loop', 'noText'] }), picked); // order of ticking doesn't matter
+const all4 = buildImageToVideoInstruction({ ...base, options: ['noText', 'noFace', 'loop', 'silent'] });
+assert.equal(all4.split('## 追加の条件（選ばれたものだけ）\n')[1].split('\n\n')[0].split('\n').length, 4);
 
 const path = process.argv[2];
 if (path) {

@@ -105,8 +105,8 @@ export function ImageToVideoPage() {
         <Textarea label="作りたい動画（任意）" value={intent} onChange={e => { setIntent(e.target.value); reset(); }} rows={3} maxLength={1500} placeholder="例: 朝の静けさから、人が通り過ぎて店が開くまで。最後は看板に寄って終わる" />
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium text-ink">追加の条件（任意・選んだ分だけ1文ずつ指示文に加わります）</legend>
-          {I2V_OPTIONS.map(o => <label key={o.id} className="flex items-center gap-2 text-sm text-ink">
-            <input type="checkbox" checked={options.includes(o.id)} onChange={e => { setOptions(prev => e.target.checked ? [...prev, o.id] : prev.filter(id => id !== o.id)); reset(); }} />
+          {I2V_OPTIONS.map(o => <label key={o.id} className="flex items-center gap-2 py-1.5 text-sm text-ink">
+            <input type="checkbox" className="h-4 w-4" checked={options.includes(o.id)} onChange={e => { setOptions(prev => e.target.checked ? [...prev, o.id] : prev.filter(id => id !== o.id)); reset(); }} />
             {o.label}
           </label>)}
         </fieldset>
