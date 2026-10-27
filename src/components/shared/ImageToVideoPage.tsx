@@ -6,7 +6,7 @@ import { CopyButton } from './CopyButton';
 import { Footer } from './Footer';
 import { Textarea } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { buildImageToVideoInstruction, defaultDuration, dominantColors, I2V_MODELS, modelById, readExifFocal, type ImageFacts } from '@/utils/imageToVideoBuilder';
+import { buildImageToVideoInstruction, defaultDuration, dominantColors, I2V_MODELS, I2V_OPTIONS, modelById, readExifFocal, type ImageFacts } from '@/utils/imageToVideoBuilder';
 
 function Select({ label, value, options, onChange }: { label: string; value: string; options: readonly (readonly [string, string])[]; onChange: (value: string) => void }) {
   return <label className="block space-y-1.5 text-sm font-medium text-ink">
@@ -39,6 +39,7 @@ export function ImageToVideoPage() {
   const [cuts, setCuts] = useState('3');
   const [ratio, setRatio] = useState('auto');
   const [intent, setIntent] = useState('');
+  const [options, setOptions] = useState<string[]>([]);
   const [facts, setFacts] = useState<ImageFacts | null>(null);
   const [imageStatus, setImageStatus] = useState('');
   const [reading, setReading] = useState(false);
@@ -63,7 +64,7 @@ export function ImageToVideoPage() {
       </div>
       <form className="space-y-5 rounded-card border border-line bg-white p-5 sm:p-7" onSubmit={event => {
         event.preventDefault();
-        setPrompt(buildImageToVideoInstruction({ model, generateSec, cuts: Number(cuts), ratio, intent, facts }));
+        setPrompt(buildImageToVideoInstruction({ model, generateSec, cuts: Number(cuts), ratio, intent, facts, options }));
         setResultStatus('指示文を作りました。下のコピーボタンでコピーできます。');
       }}>
         <label className="block space-y-1.5 text-sm font-medium text-ink">
@@ -102,6 +103,13 @@ export function ImageToVideoPage() {
           <Select label="画面比率" value={ratio} options={[['auto', '画像に合わせる'], ...['16:9', '9:16', '1:1', '4:3', '3:4', '21:9'].map(v => [v, v] as const)]} onChange={value => { setRatio(value); reset(); }} />
         </div>
         <Textarea label="作りたい動画（任意）" value={intent} onChange={e => { setIntent(e.target.value); reset(); }} rows={3} maxLength={1500} placeholder="例: 朝の静けさから、人が通り過ぎて店が開くまで。最後は看板に寄って終わる" />
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium text-ink">追加の条件（任意・選んだ分だけ1文ずつ指示文に加わります）</legend>
+          {I2V_OPTIONS.map(o => <label key={o.id} className="flex items-center gap-2 py-1.5 text-sm text-ink">
+            <input type="checkbox" className="h-4 w-4" checked={options.includes(o.id)} onChange={e => { setOptions(prev => e.target.checked ? [...prev, o.id] : prev.filter(id => id !== o.id)); reset(); }} />
+            {o.label}
+          </label>)}
+        </fieldset>
         <p className="text-xs text-ink-muted">1カットを長めに生成し、動画編集アプリで良い区間だけ切り出してつなぐ前提で、使う区間とカット表まで出させます。各AIの生成できる長さは2026年10月時点の公式資料に基づきます。iPhoneの写真（HEIC）は撮影情報を読めないことがあります。</p>
         <Button type="submit" disabled={reading} fullWidth>指示文を作る</Button>
         <p role="status" className="text-sm text-ink-muted empty:hidden">{resultStatus}</p>

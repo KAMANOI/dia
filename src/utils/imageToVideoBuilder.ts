@@ -46,6 +46,15 @@ export const IMAGE_READING_JSON = `{
   }]
 }`;
 
+// One tap = one sentence. All off by default, and every line narrows what the pasted-into AI does
+// (never "also build the typical extras"), so the output with nothing ticked is unchanged.
+export const I2V_OPTIONS = [
+  { id: 'noText', label: '画面内に文字を入れない', line: '生成する映像に、字幕・テロップ・看板などの文字を新しく加えない。' },
+  { id: 'noFace', label: '人物の顔を正面から映さない', line: '1カット目の開始フレーム（添付画像）を除き、人物は後ろ姿・遠景・影・手元などで見せ、顔を正面から大きく映さない。' },
+  { id: 'loop', label: '最後が最初に戻るつなぎ方', line: '最後のカットの終わりは、最初のカットの始まりと同じ構図・光に戻し、続けて再生しても違和感が出ないようにする（プロンプト本文には最初の構図を具体的な言葉で書き、「最初のカットと同じ」とは書かない）。' },
+  { id: 'silent', label: '音の指示は書かない', line: '音・効果音・音楽・セリフの指示は書かない（映像だけを指示する）。' },
+] as const;
+
 export interface ImageFacts {
   width: number;
   height: number;
@@ -60,6 +69,7 @@ export interface I2VInput {
   ratio: string; // 'auto' = follow the image
   intent: string;
   facts: ImageFacts | null;
+  options?: readonly string[]; // I2V_OPTIONS ids; unknown ids are ignored
 }
 
 const RATIOS = [[16, 9], [9, 16], [1, 1], [4, 3], [3, 4], [21, 9], [3, 2], [2, 3]] as const;
@@ -133,6 +143,8 @@ export function buildImageToVideoInstruction(input: I2VInput): string {
     `- 焦点距離: ${focal}`,
   ].join('\n') : '- 画像の情報は読み取っていません（画像から判断してください）';
   const intent = input.intent.trim() || '指定なし。画像から自然に起こせる動きを、無理のない範囲で提案してください。';
+  const picked = I2V_OPTIONS.filter(o => input.options?.includes(o.id));
+  const extra = picked.length ? `\n\n## 追加の条件（選ばれたものだけ）\n${picked.map(o => `- ${o.line}`).join('\n')}` : '';
   return `あなたは映像監督と撮影監督を兼ねる担当者です。添付した画像1枚を読み解き、動画生成AI「${model.label}」で使う動画用プロンプトを、カットごとに書き起こしてください。
 
 ## 制作の前提
@@ -148,7 +160,7 @@ ${facts}
 画像を見た結果と食い違う場合は、画像を優先してください。
 
 ## 作りたい動画
-${intent}
+${intent}${extra}
 
 ## 出力してほしいもの（この順で）
 

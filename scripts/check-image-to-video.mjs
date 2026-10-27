@@ -32,6 +32,19 @@ assert.match(buildImageToVideoInstruction({ ...base, model: 'veo-3.1', generateS
 assert.match(buildImageToVideoInstruction({ ...base, model: 'runway-gen4.5', generateSec: 2 }), /それぞれ0\.5秒以上/); // short clips keep a usable middle
 assert.match(noImage, /cuts はちょうど3件/);
 
+// One-tap options: nothing ticked → identical output; ticked → only those sentences; unknown id → ignored.
+assert.equal(buildImageToVideoInstruction({ ...base, options: [] }), noImage);
+assert.equal(buildImageToVideoInstruction({ ...base, options: ['nope'] }), noImage);
+assert.doesNotMatch(noImage, /追加の条件/);
+const picked = buildImageToVideoInstruction({ ...base, options: ['noText', 'loop'] });
+assert.match(picked, /## 追加の条件（選ばれたものだけ）\n- 生成する映像に、字幕/);
+assert.match(picked, /最初のカットの始まりと同じ構図/);
+assert.doesNotMatch(picked, /顔を正面から/);
+assert.doesNotMatch(picked, /音・効果音/);
+assert.equal(buildImageToVideoInstruction({ ...base, options: ['loop', 'noText'] }), picked); // order of ticking doesn't matter
+const all4 = buildImageToVideoInstruction({ ...base, options: ['noText', 'noFace', 'loop', 'silent'] });
+assert.equal(all4.split('## 追加の条件（選ばれたものだけ）\n')[1].split('\n\n')[0].split('\n').length, 4);
+
 const path = process.argv[2];
 if (path) {
   const file = readFileSync(path);
