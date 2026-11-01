@@ -35,6 +35,9 @@ assert.match(buildGuidelinePrompt(cases[0][1]), /固有名詞/);
 assert.match(buildGuidelinePrompt(cases[3][1]), /プレーンテキスト/);
 // Masking still applies in the guideline form (same sanitizer as the other three).
 assert.doesNotMatch(buildGuidelinePrompt(cases[0][1]), /1234567/);
+// Security rule outranks type defaults: with 要約 (which says keep numbers/names exact) + level3 it must be G1.
+assert.match(buildGuidelinePrompt({ ...base, artifactType: '要約', securityLevel: 'level3', description: '田中さんの売上500万円の報告を要約' }), /G1　条件：回答に固有名詞.*日付/);
+assert.match(buildGuidelinePrompt({ ...base, artifactType: '要約', securityLevel: 'level2', description: 'x' }), /G1　条件：回答に固有名詞・組織名・個人名・具体的な数値が出てくる時/);
 // modifier directive is placed first.
 assert.match(buildGuidelinePrompt(cases[1][1], 'shorter'), /^【修正指示】/);
 console.log('PASS check-guideline-form');
