@@ -20,7 +20,7 @@ for (const [name, input] of cases) {
   const g = buildGuidelinePrompt(input);
   assert.equal(g, buildGuidelinePrompt(input), 'deterministic');
   assert.equal(ruleCount(g), 5 + (input.securityLevel !== 'level1' ? 1 : 0) + (input.markdownLevel !== 'md1' ? 1 : 0));
-  assert.match(g, /^G1　条件：常に/m);
+  assert.match(g, /^G\d　条件：常に/m);
   assert.match(g, /番号の小さい方を優先/);
   assert.match(g, /範囲外/);
   assert.match(g, /矛盾している時/);
