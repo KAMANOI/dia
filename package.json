@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint .",
     "verify:no-ai": "node scripts/verify-no-ai-calls.mjs",
+    "check:guideline": "node --no-warnings --import ./scripts/ts-resolve.mjs scripts/check-guideline-form.mjs",
     "check:i2v": "node --no-warnings scripts/check-image-to-video.mjs"
   },
   "dependencies": {
