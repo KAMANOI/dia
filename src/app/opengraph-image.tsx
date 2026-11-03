@@ -33,7 +33,12 @@ async function fetchNotoSansJP(): Promise<ArrayBuffer | null> {
     ).then((r) => r.text());
     const match = css.match(/src: url\(([^)]+)\) format\('woff2'\)/);
     if (!match) return null;
-    return fetch(match[1]).then((r) => r.arrayBuffer());
+    // CSS は第三者の応答。取りに行く先は Google の配信ホストだけに限る（SSRFガード・2026-10-21 実測で戻りは https://fonts.gstatic.com/...）
+    const u = new URL(match[1]);
+    if (u.protocol !== 'https:' || u.hostname !== 'fonts.gstatic.com' || u.port !== '') return null;
+    // 2026-10-21 実測：フォントURLは転送なしで200。転送が来たら取得しない。非同期の失敗も null に収束させる
+    const r = await fetch(match[1], { redirect: 'error' });
+    return r.ok ? await r.arrayBuffer() : null;
   } catch {
     return null;
   }
