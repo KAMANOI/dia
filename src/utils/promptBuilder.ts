@@ -729,6 +729,94 @@ export function buildPrecisePrompt(request: PromptRequest): string {
 }
 
 // ============================================================
+// 組み立て層: 条件付きガイドライン (guideline)
+//
+// 思想: 1本の長い指示ではなく「条件 → 動作」の対の集まりにする。
+//       どの場面で何をするかが分かれ、矛盾した時の優先順位も明示できる。
+//       エージェント／システムプロンプトに貼る用。ChatGPT等の通常の依頼にも使える。
+//       AIは呼ばない（他の3案と同じ決まった文の組み立てのみ）。
+//
+// 構造: 依頼 → 使い方（優先順位）→ ガイドライン。番号は出現順。
+//   機密（level2/3 のみ）  常に先頭。番号優先で型の既定に負けないようにする
+//   常時    出力要件・品質（採用する前提を含む）
+//   常時    不明点がある時の扱い・範囲外・依頼内の条件が矛盾する時
+//   条件つき 書式の制約（md2/3 のみ）
+// ============================================================
+
+export function buildGuidelinePrompt(
+  input: PromptInput,
+  modifier?: PromptModifier | null,
+  precomputedIntent?: ExpandedIntent,
+): string {
+  const normalized = normalizeInput(input.description);
+  const sanitized = sanitizeBySecurityLevel(normalized, input.securityLevel);
+  const instruction = getOutputTypeInstruction(input.artifactType);
+  const markdownConstraint = getMarkdownConstraint(input.markdownLevel);
+  const aiHint = getPreferredAIHint(input.targetAI);
+  const intent = precomputedIntent ?? expandIntent(input.artifactType, normalized);
+
+  const rules: { when: string; then: string }[] = [];
+
+  // 機密は先頭に置く（番号優先で「数値・固有名詞を保持」等の型の既定に負けないため）
+  if (sanitized.policyNote) {
+    rules.push({
+      when:
+        input.securityLevel === 'level3'
+          ? '回答に固有名詞・組織名・個人名・具体的な数値・日付が出てくる時'
+          : '回答に固有名詞・組織名・個人名・具体的な数値が出てくる時',
+      then: sanitized.policyNote.replace(/^【[^】]*】/, ''),
+    });
+  }
+
+  const assumptions = intent.inferredAssumptions.length > 0
+    ? `\n次の前提を採用する：\n${intent.inferredAssumptions.map((a) => `- ${a}`).join('\n')}`
+    : '';
+  rules.push(
+    { when: '常に', then: `次の出力要件を満たす。\n${instruction.standardOutputSpec}${assumptions}` },
+    { when: '常に', then: instruction.cautions },
+    {
+      when: '依頼に不明・不足している点がある時',
+      then:
+        '質問で止まらず、最も妥当な仮定を立てて進め、冒頭で「（前提：〇〇と仮定）」と明示する。推測した箇所には「（推測）」と付ける。' +
+        (intent.ambiguityNotes.length > 0
+          ? `\n特に次の点が該当する：\n${intent.ambiguityNotes.map((n) => `- ${n}`).join('\n')}`
+          : ''),
+    },
+  );
+
+  if (markdownConstraint.blockInstructions) {
+    rules.push({ when: '回答の見た目（書式）を決める時', then: markdownConstraint.blockInstructions });
+  }
+  rules.push(
+    {
+      when: '依頼が上の成果物の範囲外（別のタスク・法律／医療／投資の助言など）の時',
+      then: '範囲外であることを一言で伝え、この依頼の範囲でできることだけを行う。',
+    },
+    {
+      when: '依頼文の中の条件同士が矛盾している時（例：短く＋詳しく）',
+      then: '黙って片方を選ばず、どちらを優先したかと理由を1行で示してから進める。',
+    },
+  );
+
+  const audience = intent.targetAudience.length > 0 ? `\nターゲット：${intent.targetAudience.join('・')}` : '';
+  const tone = intent.tone.length > 0 ? `\nトーン：${intent.tone.join('・')}` : '';
+  const blueprint = intent.outputBlueprint.length > 0 ? `\n推奨構成：${intent.outputBlueprint.join(' → ')}` : '';
+
+  const body = rules
+    .map((r, i) => `G${i + 1}　条件：${r.when}\n　　動作：${r.then.replace(/\n/g, '\n　　')}`)
+    .join('\n\n');
+
+  return joinSections(
+    getModifierDirective(modifier),
+    aiHint.preciseOpener,
+    `あなたは${aiHint.rolePrefix}${instruction.role}です。以下の「依頼」に対し、後ろの「ガイドライン」に従って対応してください。`,
+    `## 依頼\n${sanitized.text}${audience}${tone}${blueprint}`,
+    `## ガイドラインの使い方\n- 各ガイドラインは「条件に当てはまる時だけ」動作する。「常に」のものは毎回守る。\n- 依頼文に利用者の明示的な指定（長さ・形式・口調など）がある時は、それを出力要件・品質の既定より優先する。ただし情報の取り扱い（機密）の条件は常に最優先とする。\n- ガイドライン同士の動作がぶつかる時は、番号の小さい方を優先する。`,
+    `## ガイドライン\n${body}`,
+  );
+}
+
+// ============================================================
 // PUBLIC API: パイプラインを通じて3案を生成
 // ============================================================
 
