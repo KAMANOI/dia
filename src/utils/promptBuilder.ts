@@ -119,6 +119,35 @@ export function normalizeInput(text: string): string {
  * 注: v1 では完全な匿名化は行わない。
  *     level 間の差分を明確にすることを優先する。
  */
+// 明らかなパターンのみ安全にマスクする（過剰な変換はしない）
+function maskLevel3(text: string): string {
+  return text
+    .replace(/\d{7,}/g, '[数値]') // 7桁以上の数字（電話番号・IDなど）
+    .replace(/[\w.+%-]+@[\w.-]+\.[a-zA-Z]{2,}/g, '[メールアドレス]')
+    .replace(/https?:\/\/\S+/g, '[URL]');
+}
+
+/**
+ * 意図の抽出（expandIntent）は未加工の入力から作られるため、
+ * level3 では抽出結果の文字列にも本文と同じマスクをかける（対象・トーン等から機密が戻らないように）。
+ */
+export function sanitizeIntent(intent: ExpandedIntent, level: SecurityLevel): ExpandedIntent {
+  if (level !== 'level3') return intent;
+  const m = (xs: string[]) => xs.map(maskLevel3);
+  return {
+    primaryGoal: maskLevel3(intent.primaryGoal),
+    targetAudience: m(intent.targetAudience),
+    tone: m(intent.tone),
+    keyConstraints: m(intent.keyConstraints),
+    desiredQualities: m(intent.desiredQualities),
+    outputExpectation: m(intent.outputExpectation),
+    ambiguityNotes: m(intent.ambiguityNotes),
+    inferredAssumptions: m(intent.inferredAssumptions),
+    contextAmplifiers: m(intent.contextAmplifiers),
+    outputBlueprint: m(intent.outputBlueprint),
+  };
+}
+
 export function sanitizeBySecurityLevel(
   text: string,
   level: SecurityLevel
@@ -135,14 +164,8 @@ export function sanitizeBySecurityLevel(
       };
 
     case 'level3': {
-      // 明らかなパターンのみ安全にマスクする（過剰な変換はしない）
-      const masked = text
-        .replace(/\d{7,}/g, '[数値]') // 7桁以上の数字（電話番号・IDなど）
-        .replace(/[\w.+%-]+@[\w.-]+\.[a-zA-Z]{2,}/g, '[メールアドレス]')
-        .replace(/https?:\/\/\S+/g, '[URL]');
-
       return {
-        text: masked,
+        text: maskLevel3(text),
         policyNote:
           '【機密情報の取り扱い】本依頼には機密性の高い情報が含まれます。固有名詞・組織名・個人名・具体的な数値・日付はすべて「某社」「関係者」「一定の規模」などの抽象的な表現に置き換えてください。出力に特定可能な情報が残らないよう徹底してください。',
       };
@@ -753,7 +776,7 @@ export function buildGuidelinePrompt(
   const instruction = getOutputTypeInstruction(input.artifactType);
   const markdownConstraint = getMarkdownConstraint(input.markdownLevel);
   const aiHint = getPreferredAIHint(input.targetAI);
-  const intent = precomputedIntent ?? expandIntent(input.artifactType, normalized);
+  const intent = sanitizeIntent(precomputedIntent ?? expandIntent(input.artifactType, normalized), input.securityLevel);
 
   const rules: { when: string; then: string }[] = [];
 
@@ -843,7 +866,7 @@ export function buildPrompts(
   const instruction = getOutputTypeInstruction(input.artifactType);
   const markdownConstraint = getMarkdownConstraint(input.markdownLevel);
   const aiHint = getPreferredAIHint(input.targetAI);
-  const expandedIntent = precomputedIntent ?? expandIntent(input.artifactType, normalized);
+  const expandedIntent = sanitizeIntent(precomputedIntent ?? expandIntent(input.artifactType, normalized), input.securityLevel);
 
   const request: PromptRequest = {
     sanitized,

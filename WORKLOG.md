@@ -6,6 +6,7 @@
 - 接続：PC は既存の PromptCard で 4 枚目「条件付きガイドライン」（コピーも同じ部品）。スマホは既存の Tabs（pill）に 4 つ目。375px で 4 等分すると「ガイドライン」が 2 行に折れるため、スマホのタブ表記は「ガイド／条件付き」に短縮（PC のカードは正式名）。既存 3 案の文言・配置・「3案をまとめてコピー」は変えていない
 - 決めたこと：ガイドラインは HomeClient の別 state に持ち、GeneratedPrompts・履歴（localStorage）の形は変えない。履歴から開いた時は保存済みの入力と modifier から組み立て直す（AI は呼ばない・保存しない）
 - 検査：tsc 0 / lint 0 error（警告 3 件は変更前と同じ）/ check:guideline PASS / check:i2v PASS / check:og ok / verify:no-ai 全 PASS / next build 成功（19 ページ）。Playwright で PC 1440・スマホ 375 を撮影：PC カード 4 枚・スマホ横はみ出しなし・ページエラーなし・localStorage にガイドライン本文なし
+- ASTRA r1（不合格・高1 guideline-mask-bypass）：機密 level3 で本文はマスクされるが、未加工の入力から抽出した意図（ターゲット等）にメールアドレスが残る。同じ漏れは既存 3 案（本番の main にもある）にもあった。共通の口で直した：`sanitizeIntent()` で抽出結果にも本文と同じマスクをかけ、buildPrompts と buildGuidelinePrompt の両方で通す。回帰試験を check:guideline に追加（修正前の promptBuilder では失敗＝`ターゲット：alice@example.com` を確認）
 - push・main 取り込み・本番反映は司令塔（本番は代表の別途確認）
 
 ## 2026-11-05 OG 画像の日本語フォント取得に再現テストを追加（branch fix/og-font-test-20261105）

@@ -40,5 +40,12 @@ assert.match(buildGuidelinePrompt({ ...base, artifactType: '要約', securityLev
 assert.match(buildGuidelinePrompt({ ...base, artifactType: '要約', securityLevel: 'level2', description: 'x' }), /G1　条件：回答に固有名詞・組織名・個人名・具体的な数値が出てくる時/);
 // modifier directive is placed first.
 assert.match(buildGuidelinePrompt(cases[1][1], 'shorter'), /^【修正指示】/);
+// level3: 意図の抽出（対象・トーン等）からマスク済みの値が戻らない（ASTRA r1 guideline-mask-bypass）。既存 3 案も同じ口を通る。
+{
+  const leak = { ...base, artifactType: '文章作成', securityLevel: 'level3', description: '対象:alice@example.com 向けに案内を書く。https://example.com/x と 09012345678 も' };
+  const all = [buildGuidelinePrompt(leak), ...Object.values(buildPrompts(leak))];
+  for (const p of all) assert.doesNotMatch(p, /alice@example\.com|https:\/\/example\.com|09012345678/);
+  assert.match(all[0], /\[メールアドレス\]/);
+}
 console.log('PASS check-guideline-form');
 if (process.argv.includes('--table')) console.table(rows);
