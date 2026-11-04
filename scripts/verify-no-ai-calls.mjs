@@ -71,7 +71,7 @@ check('No server actions', matching(/use\s+server/i));
 // It contains ONLY the existing Google Fonts CSS + referenced font fetches.
 // Any edit to this file requires reviewing the exception again.
 const ogPath = 'src/app/opengraph-image.tsx';
-const ogHash = 'dd429a8aadd0b1e06e0544f07496f277c8dd73afb124e9f1b221a67210e7bc72';
+const ogHash = '29704460d5514c5cb60400f91f946bc98004171245e71e59135d2acb1a4de183';
 const network = /\b(?:fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon|axios|ky|ofetch|undici)\b|(?:node:)?https?['"]|next\/script/i;
 check('No network APIs except the pinned OG font fetch', files.filter(file => {
   if (!network.test(decoded(file.text))) return false;

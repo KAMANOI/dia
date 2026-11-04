@@ -31,7 +31,8 @@ async function fetchNotoSansJP(): Promise<ArrayBuffer | null> {
       'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@700',
       { headers: { 'User-Agent': 'Mozilla/5.0' } }
     ).then((r) => r.text());
-    const match = css.match(/src: url\(([^)]+)\) format\('woff2'\)/);
+    // 2026-11-04 実測：UA が Mozilla/5.0 だと Google は format('truetype')（.ttf）で返す。woff2 だけに絞ると null になり英字フォールバックに落ちる
+    const match = css.match(/src: url\(([^)]+)\) format\('(?:woff2|truetype|opentype)'\)/);
     if (!match) return null;
     // CSS は第三者の応答。取りに行く先は Google の配信ホストだけに限る（SSRFガード・2026-10-21 実測で戻りは https://fonts.gstatic.com/...）
     const u = new URL(match[1]);
