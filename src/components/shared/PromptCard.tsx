@@ -1,15 +1,15 @@
 'use client';
 
 import { CopyButton } from './CopyButton';
-import type { PromptVariant } from '@/types';
+import type { ResultTab } from '@/types';
 
 interface PromptCardProps {
-  variant: PromptVariant;
+  variant: ResultTab;
   content: string;
 }
 
 const VARIANT_META: Record<
-  PromptVariant,
+  ResultTab,
   { label: string; description: string; badgeClass: string }
 > = {
   standard: {
@@ -26,6 +26,11 @@ const VARIANT_META: Record<
     label: '高精度',
     description: '詳細型 — 役割・制約・出力形式を完全記述',
     badgeClass: 'bg-[#F5F3FF] text-[#6D28D9]',
+  },
+  guideline: {
+    label: '条件付きガイドライン',
+    description: 'エージェント向け — 条件ごとの動作を列挙',
+    badgeClass: 'bg-[#F0FDF4] text-[#15803D]',
   },
 };
 

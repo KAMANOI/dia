@@ -3,13 +3,13 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useHistory } from '@/hooks/useHistory';
-import { buildPrompts, normalizeInput } from '@/utils/promptBuilder';
+import { buildPrompts, buildGuidelinePrompt, normalizeInput } from '@/utils/promptBuilder';
 import { expandIntent } from '@/utils/intentExpander';
 import type { ExpandedIntent } from '@/utils/intentExpander';
 import { MobileLayout } from '@/components/mobile/MobileLayout';
 import { DesktopLayout } from '@/components/desktop/DesktopLayout';
 import { HistoryPanel } from '@/components/shared/HistoryPanel';
-import type { PromptInput, GeneratedPrompts, PromptVariant, PromptModifier, HistoryItem, ArtifactType } from '@/types';
+import type { PromptInput, GeneratedPrompts, ResultTab, PromptModifier, HistoryItem, ArtifactType } from '@/types';
 import type { StartOption } from '@/components/mobile/StepZero';
 import { safeTrim } from '@/utils/safeTrim';
 
@@ -35,11 +35,13 @@ export function HomeClient() {
   const [step, setStep] = useState(0);
   const [input, setInput] = useState<PromptInput>(DEFAULT_INPUT);
   const [prompts, setPrompts] = useState<GeneratedPrompts | null>(null);
+  // 条件付きガイドライン形式。履歴（GeneratedPrompts）には載せない
+  const [guideline, setGuideline] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progressStep, setProgressStep] = useState(0);
   const [isSlowConnection, setIsSlowConnection] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<PromptVariant>('standard');
+  const [activeTab, setActiveTab] = useState<ResultTab>('standard');
   const [showHistory, setShowHistory] = useState(false);
   // expandIntent キャッシュ: modifier 再生成時に expandIntent を再実行しないために使用
   // description / artifactType が変わった場合のみ再計算する
@@ -89,6 +91,7 @@ export function HomeClient() {
 
     // ── Phase 1: 実処理（同期）──
     let generated: GeneratedPrompts;
+    let generatedGuideline: string;
     try {
       const normalized = normalizeInput(input.description);
 
@@ -112,6 +115,7 @@ export function HomeClient() {
       }
 
       generated = buildPrompts(input, modifier, intent);
+      generatedGuideline = buildGuidelinePrompt(input, modifier, intent);
     } catch (computeErr) {
       setGenerationError(
         computeErr instanceof Error
@@ -153,6 +157,7 @@ export function HomeClient() {
       if (timedOut) return;
 
       setPrompts(generated);
+      setGuideline(generatedGuideline);
       addHistory({ input, prompts: generated, modifier });
       setActiveTab('standard');
       if (!isDesktop) setStep(3);
@@ -175,6 +180,8 @@ export function HomeClient() {
     (item: HistoryItem) => {
       setInput(item.input);
       setPrompts(item.prompts);
+      // 履歴には保存していないので、保存済みの入力から組み立て直す（AIは呼ばない）
+      setGuideline(buildGuidelinePrompt(item.input, item.modifier));
       setActiveTab('standard');
       if (!isDesktop) setStep(3);
       setShowHistory(false);
@@ -187,6 +194,7 @@ export function HomeClient() {
     setStep(1);
     setInput(DEFAULT_INPUT);
     setPrompts(null);
+    setGuideline(null);
   }, []);
 
   const handleNext = useCallback(() => {
@@ -203,6 +211,7 @@ export function HomeClient() {
         <DesktopLayout
           input={input}
           prompts={prompts}
+          guideline={guideline}
           isGenerating={isGenerating}
           progressStep={progressStep}
           isSlowConnection={isSlowConnection}
@@ -218,6 +227,7 @@ export function HomeClient() {
           step={step}
           input={input}
           prompts={prompts}
+          guideline={guideline}
           activeTab={activeTab}
           isGenerating={isGenerating}
           progressStep={progressStep}

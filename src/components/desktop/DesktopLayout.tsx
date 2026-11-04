@@ -9,6 +9,7 @@ import { Footer } from '@/components/shared/Footer';
 interface DesktopLayoutProps {
   input: PromptInput;
   prompts: GeneratedPrompts | null;
+  guideline: string | null;
   isGenerating: boolean;
   progressStep: number;
   isSlowConnection: boolean;
@@ -23,6 +24,7 @@ interface DesktopLayoutProps {
 export function DesktopLayout({
   input,
   prompts,
+  guideline,
   isGenerating,
   progressStep,
   isSlowConnection,
@@ -85,6 +87,7 @@ export function DesktopLayout({
             ) : (
               <ResultPanel
                 prompts={prompts}
+                guideline={guideline}
                 isGenerating={isGenerating}
                 progressStep={progressStep}
                 isSlowConnection={isSlowConnection}

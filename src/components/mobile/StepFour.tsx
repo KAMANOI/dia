@@ -1,6 +1,6 @@
 'use client';
 
-import type { GeneratedPrompts, PromptVariant, PromptModifier } from '@/types';
+import type { GeneratedPrompts, ResultTab, PromptModifier } from '@/types';
 import { MODIFIER_LABELS } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Tabs } from '@/components/ui/Tabs';
@@ -8,24 +8,28 @@ import { CopyButton } from '@/components/shared/CopyButton';
 
 interface StepFourProps {
   prompts: GeneratedPrompts;
-  activeTab: PromptVariant;
+  guideline: string | null;
+  activeTab: ResultTab;
   isGenerating: boolean;
-  onTabChange: (tab: PromptVariant) => void;
+  onTabChange: (tab: ResultTab) => void;
   onModify: (modifier: PromptModifier) => void;
   onBack: () => void;
   onNew: () => void;
 }
 
 const TABS = [
-  { key: 'standard' as PromptVariant, label: '標準',  sub: 'バランス型' },
-  { key: 'concise'  as PromptVariant, label: '簡潔',  sub: '短め' },
-  { key: 'precise'  as PromptVariant, label: '高精度', sub: '詳細型' },
+  { key: 'standard' as ResultTab, label: '標準',  sub: 'バランス型' },
+  { key: 'concise'  as ResultTab, label: '簡潔',  sub: '短め' },
+  { key: 'precise'  as ResultTab, label: '高精度', sub: '詳細型' },
+  // 375px で 4 等分すると「ガイドライン」は 2 行に折れるため短縮（PC のカードは正式名）
+  { key: 'guideline' as ResultTab, label: 'ガイド', sub: '条件付き' },
 ];
 
 const MODIFIERS: PromptModifier[] = ['shorter', 'polish', 'more_specific', 'alternative'];
 
 export function StepFour({
   prompts,
+  guideline,
   activeTab,
   isGenerating,
   onTabChange,
@@ -33,7 +37,7 @@ export function StepFour({
   onBack,
   onNew,
 }: StepFourProps) {
-  const content = prompts[activeTab];
+  const content = activeTab === 'guideline' ? (guideline ?? '') : prompts[activeTab];
 
   if (isGenerating) {
     return (
@@ -52,7 +56,7 @@ export function StepFour({
         <Tabs
           tabs={TABS}
           active={activeTab}
-          onChange={(k) => onTabChange(k as PromptVariant)}
+          onChange={(k) => onTabChange(k as ResultTab)}
           variant="pill"
         />
       </div>

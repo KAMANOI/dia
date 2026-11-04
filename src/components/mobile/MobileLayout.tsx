@@ -1,6 +1,6 @@
 'use client';
 
-import type { PromptInput, GeneratedPrompts, PromptVariant, PromptModifier, HistoryItem } from '@/types';
+import type { PromptInput, GeneratedPrompts, ResultTab, PromptModifier, HistoryItem } from '@/types';
 import { StepZero } from './StepZero';
 import type { StartOption } from './StepZero';
 import { StepOne } from './StepOne';
@@ -11,14 +11,15 @@ interface MobileLayoutProps {
   step: number;
   input: PromptInput;
   prompts: GeneratedPrompts | null;
-  activeTab: PromptVariant;
+  guideline: string | null;
+  activeTab: ResultTab;
   isGenerating: boolean;
   progressStep: number;
   isSlowConnection: boolean;
   generationError: string | null;
   history: HistoryItem[];
   onInputChange: (updates: Partial<PromptInput>) => void;
-  onTabChange: (tab: PromptVariant) => void;
+  onTabChange: (tab: ResultTab) => void;
   onGenerate: () => void;
   onModify: (modifier: PromptModifier) => void;
   onRetry: () => void;
@@ -35,6 +36,7 @@ export function MobileLayout({
   step,
   input,
   prompts,
+  guideline,
   activeTab,
   isGenerating,
   progressStep,
@@ -117,6 +119,7 @@ export function MobileLayout({
         {step === 3 && prompts && (
           <StepFour
             prompts={prompts}
+            guideline={guideline}
             activeTab={activeTab}
             isGenerating={isGenerating}
             onTabChange={onTabChange}

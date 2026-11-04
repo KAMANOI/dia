@@ -14,6 +14,8 @@ export type SecurityLevel = 'level1' | 'level2' | 'level3';
 export type MarkdownLevel = 'md1' | 'md2' | 'md3';
 export type TargetAI = 'none' | 'chatgpt' | 'claude' | 'gemini' | 'general';
 export type PromptVariant = 'standard' | 'concise' | 'precise';
+/** 結果の表示切替。guideline は履歴（GeneratedPrompts）に載せない別形式 */
+export type ResultTab = PromptVariant | 'guideline';
 export type PromptModifier = 'shorter' | 'polish' | 'more_specific' | 'alternative';
 
 export const ARTIFACT_TYPES: ArtifactType[] = [

@@ -8,6 +8,7 @@ import { GeneratingView } from '@/components/shared/GeneratingView';
 
 interface ResultPanelProps {
   prompts: GeneratedPrompts | null;
+  guideline: string | null;
   isGenerating: boolean;
   progressStep: number;
   isSlowConnection: boolean;
@@ -19,7 +20,7 @@ interface ResultPanelProps {
 const VARIANTS: PromptVariant[] = ['standard', 'concise', 'precise'];
 const MODIFIERS: PromptModifier[] = ['shorter', 'polish', 'more_specific', 'alternative'];
 
-export function ResultPanel({ prompts, isGenerating, progressStep, isSlowConnection, generationError, onModify, onRetry }: ResultPanelProps) {
+export function ResultPanel({ prompts, guideline, isGenerating, progressStep, isSlowConnection, generationError, onModify, onRetry }: ResultPanelProps) {
   if (isGenerating) {
     return (
       <div className="space-y-4">
@@ -103,6 +104,7 @@ export function ResultPanel({ prompts, isGenerating, progressStep, isSlowConnect
       {VARIANTS.map((variant) => (
         <PromptCard key={variant} variant={variant} content={prompts[variant]} />
       ))}
+      {guideline && <PromptCard variant="guideline" content={guideline} />}
 
       {/* 改善アクション */}
       <div className="pt-2">
