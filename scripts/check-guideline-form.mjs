@@ -3,6 +3,7 @@
 // Metrics are structural only (no LLM is called): whether the output states a trigger, a priority rule, a boundary, a conflict rule.
 import assert from 'node:assert/strict';
 import { buildPrompts, buildGuidelinePrompt } from '../src/utils/promptBuilder.ts';
+import { expandIntent } from '../src/utils/intentExpander.ts';
 
 const base = { securityLevel: 'level1', markdownLevel: 'md1', targetAI: 'none' };
 // DIA-side counterparts of the demo's 5 scenarios.
@@ -46,6 +47,13 @@ assert.match(buildGuidelinePrompt(cases[1][1], 'shorter'), /^【修正指示】/
   const all = [buildGuidelinePrompt(leak), ...Object.values(buildPrompts(leak))];
   for (const p of all) assert.doesNotMatch(p, /alice@example\.com|https:\/\/example\.com|09012345678/);
   assert.match(all[0], /\[メールアドレス\]/);
+  // 切り出しで URL の形が崩れる例（ASTRA r2 guideline-mask-truncation）と、呼び出し側が未加工の入力から事前計算した意図を渡す例（HomeClient の形）
+  const cut = { ...leak, description: 'https://x.test/secret-token42向けに案内を書く' };
+  const rawIntent = expandIntent(cut.artifactType, cut.description);
+  assert.match(rawIntent.targetAudience.join(), /secret-token42/); // 前提：未加工から抽出すると漏れる形であること
+  for (const p of [buildGuidelinePrompt(cut), buildGuidelinePrompt(cut, null, rawIntent), ...Object.values(buildPrompts(cut)), ...Object.values(buildPrompts(cut, null, rawIntent))]) {
+    assert.doesNotMatch(p, /secret-token42|x\.test/);
+  }
 }
 console.log('PASS check-guideline-form');
 if (process.argv.includes('--table')) console.table(rows);

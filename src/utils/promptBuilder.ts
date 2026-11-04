@@ -128,24 +128,18 @@ function maskLevel3(text: string): string {
 }
 
 /**
- * 意図の抽出（expandIntent）は未加工の入力から作られるため、
- * level3 では抽出結果の文字列にも本文と同じマスクをかける（対象・トーン等から機密が戻らないように）。
+ * 意図の抽出（expandIntent）。level3 では必ずマスク済みの本文から抽出し直す
+ * （未加工の入力から抽出すると、対象・トーン等の切り出しで機密が戻る。切り出し後はマスクの形が崩れて後から消せない）。
+ * level1/2 は本文を変えないので、呼び出し側の事前計算をそのまま使う。
  */
-export function sanitizeIntent(intent: ExpandedIntent, level: SecurityLevel): ExpandedIntent {
-  if (level !== 'level3') return intent;
-  const m = (xs: string[]) => xs.map(maskLevel3);
-  return {
-    primaryGoal: maskLevel3(intent.primaryGoal),
-    targetAudience: m(intent.targetAudience),
-    tone: m(intent.tone),
-    keyConstraints: m(intent.keyConstraints),
-    desiredQualities: m(intent.desiredQualities),
-    outputExpectation: m(intent.outputExpectation),
-    ambiguityNotes: m(intent.ambiguityNotes),
-    inferredAssumptions: m(intent.inferredAssumptions),
-    contextAmplifiers: m(intent.contextAmplifiers),
-    outputBlueprint: m(intent.outputBlueprint),
-  };
+function resolveIntent(
+  input: PromptInput,
+  normalized: string,
+  sanitizedText: string,
+  precomputedIntent?: ExpandedIntent,
+): ExpandedIntent {
+  if (input.securityLevel === 'level3') return expandIntent(input.artifactType, sanitizedText);
+  return precomputedIntent ?? expandIntent(input.artifactType, normalized);
 }
 
 export function sanitizeBySecurityLevel(
@@ -776,7 +770,7 @@ export function buildGuidelinePrompt(
   const instruction = getOutputTypeInstruction(input.artifactType);
   const markdownConstraint = getMarkdownConstraint(input.markdownLevel);
   const aiHint = getPreferredAIHint(input.targetAI);
-  const intent = sanitizeIntent(precomputedIntent ?? expandIntent(input.artifactType, normalized), input.securityLevel);
+  const intent = resolveIntent(input, normalized, sanitized.text, precomputedIntent);
 
   const rules: { when: string; then: string }[] = [];
 
@@ -866,7 +860,7 @@ export function buildPrompts(
   const instruction = getOutputTypeInstruction(input.artifactType);
   const markdownConstraint = getMarkdownConstraint(input.markdownLevel);
   const aiHint = getPreferredAIHint(input.targetAI);
-  const expandedIntent = sanitizeIntent(precomputedIntent ?? expandIntent(input.artifactType, normalized), input.securityLevel);
+  const expandedIntent = resolveIntent(input, normalized, sanitized.text, precomputedIntent);
 
   const request: PromptRequest = {
     sanitized,
