@@ -1,7 +1,7 @@
 # DIA 脅威モデル
 
-雛形: ai-virtual-corp `docs/security/THREAT_MODEL_TEMPLATE.md`（HDR共通・2026-10-20）。作成: 2026-10-20。
-対象: 本リポジトリ（github.com/KAMANOI/dia・既定枝 main・コミット a3885520 時点）。本番の状態は本書では確認していない（情報なし）。
+雛形: ai-virtual-corp `docs/security/THREAT_MODEL_TEMPLATE.md`（HDR共通・2026-10-20）。作成: 2026-10-20。更新: 2026-11-04（公開入口に `/ads.txt` を追加・対象時点を統合後へ）。
+対象: 本リポジトリ（github.com/KAMANOI/dia・既定枝 main・コミット 152dea27 時点・2026-11-04）。本番の状態は本書では確認していない（情報なし）。
 出典の略称: 目的カード＝ai-virtual-corp `docs/purpose/DIA.md`／SD＝本リポジトリ `docs/SECURITY_DESIGN.md`／WL＝`WORKLOG.md`／V＝`scripts/verify-no-ai-calls.mjs`。
 
 ## 1. 製品が何をするか
@@ -12,13 +12,13 @@
 
 ## 2. 信頼できない入力の入口
 サーバー側で入力を受ける入口は 0 本（HTTP は GET のみ。`src/app/api`・サーバーアクション・middleware・proxy・`vercel.json` の書き換えは無い。V:30,49,66,68 が毎回のビルド前に検査: `package.json` の `prebuild`）。
-ページ等の公開 GET 入口は 18 本中 18 本を下表に列挙（`src/app` の `page.tsx` 14 本＋`opengraph-image.tsx`・`robots.ts`・`sitemap.ts` の 3 本＋`public/llms.txt` 1 本）。いずれも URL のパス以外に入力を取らない。
+ページ等の公開 GET 入口は 19 本中 19 本を下表に列挙（`src/app` の `page.tsx` 14 本＋`opengraph-image.tsx`・`robots.ts`・`sitemap.ts` の 3 本＋`public/llms.txt`・`public/ads.txt` の 2 本）。いずれも URL のパス以外に入力を取らない。
 
 | 入口 | 誰が送れるか | 認証 | 備考 |
 |---|---|---|---|
 | `/`（`src/app/page.tsx`）・`/image`・`/video`・`/video/from-image` の4本 | 誰でも | なし | 入力は利用者のブラウザ内フォームだけ。サーバーへは送らない。結果は React のテキストとして描画（`dangerouslySetInnerHTML` は `layout.tsx:117`〔自前の構造化データ〕と `AdSlot.tsx:81`〔固定文字列〕のみ） |
 | `/about` `/contact` `/how-to` `/privacy` `/terms` `/guide-1`〜`/guide-5` の10本 | 誰でも | なし | 静的コンテンツ。`/contact` は github.com/KAMANOI/dia/issues への外部リンクのみ（`src/app/contact/page.tsx:25`） |
-| `/opengraph-image` `/robots.txt` `/sitemap.xml` `/llms.txt` の4本 | 誰でも | なし | 静的。`opengraph-image.tsx` はビルド／描画時に Google Fonts へ取得（`:30-36`、V が内容ハッシュで固定） |
+| `/opengraph-image` `/robots.txt` `/sitemap.xml` `/llms.txt` `/ads.txt` の5本 | 誰でも | なし | 静的。`opengraph-image.tsx` はビルド／描画時に Google Fonts へ取得（`:30-42`、V が内容ハッシュで固定）。`public/ads.txt` は AdSense の販売者宣言 1 行（公開前提の publisher id のみ・コミット 6b816e69） |
 
 ブラウザ内の入力（サーバーを通らないが、信頼しない入力として扱う）:
 | 入口 | 誰が送れるか | 認証 | 備考 |
