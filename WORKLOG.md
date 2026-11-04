@@ -1,5 +1,13 @@
 # DIA WORKLOG
 
+## 2026-11-05 OG 画像の日本語フォント取得に再現テストを追加（branch fix/og-font-test-20261105）
+- 元の指摘（8e4e8a40 の独立判定 中1・font-fallback-regression-test）：「バグ修正に対する再現テストが差分になく…truetype 応答でフォントを取得できることと、取得先制限を維持していることの検証根拠が不足」
+- 追加：`scripts/check-og-font.mjs`（`npm run check:og`）。fetch を固定応答に差し替え、truetype で取得できる・woff2/opentype も従来どおり・fonts.gstatic.com 以外（別ホスト・http・別ポート・似た名前・メタデータ IP）は 2 回目の取得をしない・転送は追わない・失敗時は null、を確認。外部通信なし
+- 決めたこと：本体 `src/app/opengraph-image.tsx` は 1 文字も変えない（verify-no-ai-calls.mjs が sha256 で固定している・本番 dia-aovhdjzq2 と同じ物のまま）。試験は本体から関数を切り出して型を外して実行する＝写しを試さない
+- 効き目の確認：取得条件を woff2 だけに戻した写し・ホスト制限を外した写しでは、この試験が失敗することを確認
+- 検査：tsc 0 / eslint 0 error（警告 3 件は変更前と同じ）/ verify:no-ai 全 PASS / check:i2v PASS / check:og ok。next build は外部（Google Fonts）取得を伴うため未実行（本体は無変更）
+- push・main 取り込みは司令塔。本番反映は不要（本体無変更）
+
 ## 2026-10-13 01:xx（非対話）画像1枚から動画用プロンプトを起こす指示文モード（branch feat/dia-image-to-video）
 - 着手前確認：画像・動画プロンプトの復元（やること1）は 9/29 に完了済み・本番 /image /video 200 を実測。今回は新モードのみ
 - 追加：`/video/from-image`（`src/utils/imageToVideoBuilder.ts`・`src/components/shared/ImageToVideoPage.tsx`）。画像はブラウザ内でだけ読む（縦横・主な色・EXIFの焦点距離）。AI・外部送信なし

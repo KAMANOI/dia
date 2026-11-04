@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "eslint .",
     "verify:no-ai": "node scripts/verify-no-ai-calls.mjs",
-    "check:i2v": "node --no-warnings scripts/check-image-to-video.mjs"
+    "check:i2v": "node --no-warnings scripts/check-image-to-video.mjs",
+    "check:og": "node --no-warnings scripts/check-og-font.mjs"
   },
   "dependencies": {
     "next": "^16.4.5",
