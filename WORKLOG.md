@@ -1,5 +1,13 @@
 # DIA WORKLOG
 
+## 2026-11-05 依存監査（npm audit --audit-level=high）の失敗を直す（branch chore/audit-fix-20261105）
+- 根拠：代表 2026-11-05 朝「全部 y」＝「KONTE と Dia の依存更新をしてよいか」に Y（依存更新は audit が指す物の修正版だけ）。
+- 原因の特定（npm audit --json・main 7a85398b）：high は 1 件だけ＝zod <4.6.6「Zod can exhaust memory while validating oversized constrained collections」GHSA-mrhx-c7xc-m3w5（CVSS 7.5・CWE-770）。zod 4.5.4 は開発依存（eslint-plugin-react-hooks・zod-validation-error の peer ^3.25.0 || ^4.0.0）。minimatch は moderate（GHSA-g3hv-75wg-m249）で high ではない＝失敗の原因ではない。
+- 修正：npm update zod --package-lock-only で lock の zod だけ 4.5.4→4.6.7（既存の範囲内・overrides 不要）。package.json は変えていない。
+- 検査：npm ci --ignore-scripts 0／npm audit --audit-level=high 0（high 0・moderate 9）／tsc 0／lint 0 error（警告 3 件は既存の setState in effect）／check:guideline・check:i2v・check:og・verify:no-ai すべて PASS／next build 0（Next.js 16.4.5）。
+- 残り：moderate 9 件（eslint 系 minimatch・postcss-selector-parser GHSA-rj75-hqrm-r3gf）＝audit-level=high では失敗しない。今回の Y の範囲外。
+- push・main 取り込み（＝本番配備）は司令塔。作業中に共有ツリー ~/Dia で next build を 1 回誤って実行した（git 管理外の .next だけ再生成・管理ファイルは無変化・16.4.0 の脆弱性通知で終了コード 1）。
+
 ## 2026-11-05 条件付きガイドライン形式を結果画面とスマホ画面の 4 つ目に接続（branch feat/dia-guideline-tab-20261105）
 - 根拠：代表 2026-11-01 13:57「全部 Y」＝判断カード推奨①「接続する（履歴には載せない）→結果画面とスマホ画面にタブを足す（push・本番反映は別途確認）」
 - 元：main dd63f643 に feat/dia-guideline-form-20261101（950197cd・関数のみ）を merge。衝突は package.json の scripts だけ＝check:guideline・check:i2v・check:og を全部残した
